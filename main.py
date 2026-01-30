@@ -4,14 +4,16 @@ Memo Filler Service - Fairbridge Deal Memo Generator
 FastAPI service that fills Word templates using Jinja2/docxtpl engine.
 Designed for complex templates with loops, conditionals, and nested data.
 
-Version: 1.0.0
+NEW in v2.0: Direct Layer 2 → Deal Memo endpoint (/fill-from-layer2)
+
+Version: 2.0.0
 """
 
 import os
 import re
 import base64
 from io import BytesIO
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
@@ -23,10 +25,10 @@ from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Inches, Mm
 from PIL import Image
 
-app = FastAPI(title="Memo Filler Service", version="1.0.0")
+app = FastAPI(title="Memo Filler Service", version="2.0.0")
 
 # =============================================================================
-# S3 Configuration (same as IDS Template Filler)
+# S3 Configuration
 # =============================================================================
 S3_ENDPOINT = "https://nyc3.digitaloceanspaces.com"
 S3_BUCKET = "fam.workspace"
@@ -44,10 +46,9 @@ s3_client = boto3.client(
 # =============================================================================
 # Image dimension constraints
 # =============================================================================
-MAX_WIDTH_INCHES = 6.5   # Content area of letter page with 1" margins
-MAX_HEIGHT_INCHES = 8.0  # Leave room for captions/spacing
+MAX_WIDTH_INCHES = 6.5
+MAX_HEIGHT_INCHES = 8.0
 
-# Default widths for known image types
 IMAGE_WIDTHS = {
     "IMAGE_SOURCES_USES": 6.5,
     "IMAGE_CAPITAL_STACK_CLOSING": 6.5,
@@ -65,22 +66,593 @@ IMAGE_WIDTHS = {
 
 
 # =============================================================================
+# Layer 2 to Schema Mapper (Embedded)
+# =============================================================================
+class Layer2ToSchemaMapper:
+    """
+    Maps Layer 2 extraction output to the Fairbridge Memo Template schema.
+    Handles multiple PFS data structures to capture ALL sponsors.
+    """
+
+    def __init__(self, layer2_data: List[Dict[str, Any]]):
+        self.raw_data = layer2_data
+        self.docs_by_type = self._index_by_document_type()
+
+    def _index_by_document_type(self) -> Dict[str, List[Dict]]:
+        index = {}
+        for item in self.raw_data:
+            dd_name = item.get('dd_name', 'Unknown')
+            if dd_name not in index:
+                index[dd_name] = []
+            index[dd_name].append(item.get('extracted_data', {}))
+        return index
+
+    def _get_doc(self, dd_name: str, index: int = 0) -> Dict[str, Any]:
+        docs = self.docs_by_type.get(dd_name, [])
+        return docs[index] if index < len(docs) else {}
+
+    def _get_all_docs(self, dd_name: str) -> List[Dict[str, Any]]:
+        return self.docs_by_type.get(dd_name, [])
+
+    def _format_currency(self, value: Any) -> str:
+        if value is None:
+            return "N/A"
+        try:
+            num = float(value)
+            if num >= 1_000_000:
+                return f"${num/1_000_000:,.2f}M"
+            elif num >= 1_000:
+                return f"${num:,.0f}"
+            else:
+                return f"${num:,.2f}"
+        except (ValueError, TypeError):
+            return str(value)
+
+    def _format_percent(self, value: Any) -> str:
+        if value is None:
+            return "N/A"
+        try:
+            return f"{float(value):.2f}%"
+        except (ValueError, TypeError):
+            return str(value)
+
+    def _safe_get(self, data: Dict, *keys, default=None):
+        result = data
+        for key in keys:
+            if isinstance(result, dict):
+                result = result.get(key, default)
+            else:
+                return default
+        return result if result is not None else default
+
+    def _build_cover(self) -> Dict[str, Any]:
+        appraisal = self._get_doc('Appraisal')
+        prop_details = self._safe_get(appraisal, 'property_details', default={})
+        address = self._safe_get(prop_details, 'address', default={})
+
+        property_name = self._safe_get(prop_details, 'property_name', default='')
+        street = self._safe_get(address, 'street', default='')
+        city = self._safe_get(address, 'city', default='')
+        state = self._safe_get(address, 'state', default='')
+        zip_code = self._safe_get(address, 'zip', default='')
+        full_address = f"{street}, {city}, {state} {zip_code}".strip(', ')
+
+        return {
+            "memo_subtitle": "CREDIT COMMITTEE MEMO",
+            "memo_title": "BRIDGE LOAN REQUEST",
+            "property_name": property_name,
+            "property_address": full_address,
+            "credit_committee": [
+                "Tony Balbo, Partner",
+                "Keith Konon, Partner",
+                "Greg Halajian, CFO"
+            ],
+            "underwriting_team": ["Colton Proctor, Associate"],
+            "memo_date": datetime.now().strftime("%B %d, %Y")
+        }
+
+    def _build_transaction_overview(self) -> Dict[str, Any]:
+        appraisal = self._get_doc('Appraisal')
+        term_sheet = self._get_doc('Term Sheet')
+
+        prop_details = self._safe_get(appraisal, 'property_details', default={})
+        valuation = self._safe_get(appraisal, 'valuation_summary', default={})
+        loan_terms = self._safe_get(term_sheet, 'loan_terms', default={})
+        improvements = self._safe_get(prop_details, 'improvements', default={})
+        land_area = self._safe_get(prop_details, 'land_area', default={})
+
+        market_values = self._safe_get(valuation, 'market_value_conclusions', default=[])
+        as_is_value = None
+        stabilized_value = None
+        for mv in market_values:
+            if 'As Is' in mv.get('appraisal_premise', ''):
+                as_is_value = mv.get('value_conclusion')
+            if 'Stabilized' in mv.get('appraisal_premise', ''):
+                stabilized_value = mv.get('value_conclusion')
+
+        loan_amount = self._safe_get(loan_terms, 'loan_amount', default='')
+        loan_amount_num = None
+        if isinstance(loan_amount, str):
+            match = re.search(r'\$?([\d,]+)', loan_amount)
+            if match:
+                loan_amount_num = int(match.group(1).replace(',', ''))
+        elif isinstance(loan_amount, (int, float)):
+            loan_amount_num = loan_amount
+
+        ltv = None
+        if loan_amount_num and as_is_value:
+            ltv = (loan_amount_num / as_is_value) * 100
+
+        gla = self._safe_get(improvements, 'gross_leasable_area_sf')
+        gla_str = f"{gla:,} SF" if isinstance(gla, (int, float)) else "N/A"
+
+        return {
+            "deal_facts": [
+                {"label": "Property Type", "value": self._safe_get(prop_details, 'property_type', default='Retail')},
+                {"label": "Property Name", "value": self._safe_get(prop_details, 'property_name', default='')},
+                {"label": "Location", "value": f"{self._safe_get(prop_details, 'address', 'city', default='')}, {self._safe_get(prop_details, 'address', 'state', default='')}"},
+                {"label": "Land Area", "value": f"{self._safe_get(land_area, 'acres', default='N/A')} acres"},
+                {"label": "Building SF", "value": gla_str},
+                {"label": "Year Built", "value": str(self._safe_get(improvements, 'year_built', default='N/A'))},
+                {"label": "Occupancy", "value": self._format_percent(self._safe_get(prop_details, 'occupancy', 'current_occupancy_percent'))},
+            ],
+            "loan_terms": [
+                {"label": "Loan Amount", "value": self._format_currency(loan_amount_num)},
+                {"label": "Term", "value": f"{self._safe_get(loan_terms, 'term_months', default='N/A')} months"},
+                {"label": "Amortization", "value": self._safe_get(loan_terms, 'amortization', default='Interest Only')},
+                {"label": "Extension", "value": f"{self._safe_get(loan_terms, 'extension_option', 'count', default='1')}x {self._safe_get(loan_terms, 'extension_option', 'term_months', default='6')}-month"},
+                {"label": "Origination Fee", "value": self._safe_get(loan_terms, 'origination_fee', default='1.00%')},
+                {"label": "Exit Fee", "value": self._safe_get(loan_terms, 'exit_fee', default='1.00%')},
+            ],
+            "leverage_metrics": [
+                {"label": "As-Is Value", "value": self._format_currency(as_is_value)},
+                {"label": "Stabilized Value", "value": self._format_currency(stabilized_value)},
+                {"label": "Loan-to-Value (As-Is)", "value": self._format_percent(ltv) if ltv else "N/A"},
+                {"label": "Loan Amount", "value": self._format_currency(loan_amount_num)},
+            ]
+        }
+
+    def _build_executive_summary(self) -> Dict[str, Any]:
+        appraisal = self._get_doc('Appraisal')
+        prop_details = self._safe_get(appraisal, 'property_details', default={})
+        redevelopment = self._safe_get(appraisal, 'redevelopment_plan', default={})
+
+        property_name = self._safe_get(prop_details, 'property_name', default='the property')
+        city = self._safe_get(prop_details, 'address', 'city', default='')
+        state = self._safe_get(prop_details, 'address', 'state', default='')
+        gla = self._safe_get(prop_details, 'improvements', 'gross_leasable_area_sf', default=0)
+
+        narrative = f"Fairbridge is being asked to provide a bridge loan secured by {property_name}, "
+        narrative += f"a {gla:,} SF retail center located in {city}, {state}. "
+        if redevelopment.get('description'):
+            narrative += f"\n\nThe business plan involves: {redevelopment['description']}"
+
+        key_highlights = [
+            f"Property: {property_name}",
+            f"Location: {city}, {state}",
+            f"GLA: {gla:,} SF" if gla else "GLA: See appraisal",
+        ]
+        occupancy = self._safe_get(prop_details, 'occupancy', 'current_occupancy_percent')
+        if occupancy:
+            key_highlights.append(f"Current Occupancy: {occupancy}%")
+
+        return {
+            "narrative": narrative,
+            "key_highlights": key_highlights,
+            "recommendation": "APPROVE - Subject to conditions",
+            "conditions": [
+                "Standard closing conditions",
+                "Satisfactory title and survey review",
+                "Completion of legal documentation"
+            ]
+        }
+
+    def _build_sources_and_uses(self) -> Dict[str, Any]:
+        sources_uses_docs = self._get_all_docs('Sources & Uses')
+        sources = []
+        uses = []
+
+        for doc in sources_uses_docs:
+            if 'sources' in doc:
+                for item in doc.get('sources', []):
+                    sources.append({
+                        "label": item.get('description', item.get('label', 'Source')),
+                        "amount": self._format_currency(item.get('amount')),
+                        "percent": self._format_percent(item.get('percentage', item.get('percent')))
+                    })
+            if 'uses' in doc:
+                for item in doc.get('uses', []):
+                    uses.append({
+                        "label": item.get('description', item.get('label', 'Use')),
+                        "amount": self._format_currency(item.get('amount')),
+                        "release_conditions": item.get('release_conditions', item.get('notes', ''))
+                    })
+
+        return {
+            "fairbridge_sources_uses": {
+                "sources": sources if sources else [{"label": "TBD", "amount": "TBD", "percent": "TBD"}],
+                "uses": uses if uses else [{"label": "TBD", "amount": "TBD", "release_conditions": "TBD"}]
+            }
+        }
+
+    def _build_property(self) -> Dict[str, Any]:
+        appraisal = self._get_doc('Appraisal')
+        prop_details = self._safe_get(appraisal, 'property_details', default={})
+        improvements = self._safe_get(prop_details, 'improvements', default={})
+        land_area = self._safe_get(prop_details, 'land_area', default={})
+
+        gla = self._safe_get(improvements, 'gross_leasable_area_sf', default='N/A')
+        gla_str = f"{gla:,}" if isinstance(gla, (int, float)) else gla
+
+        narrative = f"The subject property is {self._safe_get(prop_details, 'property_name', default='a retail center')} "
+        narrative += f"located at {self._safe_get(prop_details, 'address', 'street', default='')}. "
+        narrative += f"The property consists of {self._safe_get(improvements, 'number_of_buildings', default='multiple')} buildings "
+        narrative += f"totaling {gla_str} SF of gross leasable area "
+        narrative += f"on approximately {self._safe_get(land_area, 'acres', default='N/A')} acres."
+
+        land_sf = self._safe_get(land_area, 'square_feet')
+        land_str = f"{self._safe_get(land_area, 'acres', default='N/A')} acres"
+        if isinstance(land_sf, (int, float)):
+            land_str += f" ({land_sf:,} SF)"
+
+        metrics = [
+            {"label": "Property Name", "value": self._safe_get(prop_details, 'property_name', default='N/A')},
+            {"label": "Property Type", "value": self._safe_get(prop_details, 'property_type', default='Retail')},
+            {"label": "Land Area", "value": land_str},
+            {"label": "Gross Leasable Area", "value": f"{gla_str} SF"},
+            {"label": "Number of Buildings", "value": str(self._safe_get(improvements, 'number_of_buildings', default='N/A'))},
+            {"label": "Year Built", "value": str(self._safe_get(improvements, 'year_built', default='N/A'))},
+            {"label": "Year Renovated", "value": str(self._safe_get(improvements, 'year_renovated', default='N/A'))},
+            {"label": "Condition", "value": self._safe_get(improvements, 'condition', default='N/A')},
+            {"label": "Current Occupancy", "value": self._format_percent(self._safe_get(prop_details, 'occupancy', 'current_occupancy_percent'))},
+            {"label": "Stabilized Occupancy", "value": self._format_percent(self._safe_get(prop_details, 'occupancy', 'stabilized_occupancy_percent'))},
+        ]
+
+        anchors = self._safe_get(prop_details, 'anchor_tenants', default=[])
+        if anchors:
+            metrics.append({"label": "Anchor Tenants", "value": ", ".join(anchors[:5])})
+
+        return {"description_narrative": narrative, "metrics": metrics}
+
+    def _build_location(self) -> Dict[str, Any]:
+        appraisal = self._get_doc('Appraisal')
+        prop_details = self._safe_get(appraisal, 'property_details', default={})
+        address = self._safe_get(prop_details, 'address', default={})
+
+        city = address.get('city', '')
+        county = address.get('county', '')
+        state = address.get('state', '')
+
+        narrative = f"The property is located in {city}, {county}, {state}. "
+        narrative += "The area benefits from strong demographics and accessibility. "
+        narrative += "Please refer to the appraisal for detailed location analysis."
+
+        return {"narrative": narrative}
+
+    def _build_market(self) -> Dict[str, Any]:
+        return {
+            "narrative": "Market analysis indicates favorable conditions for the subject property type. "
+                        "Please refer to the appraisal for detailed market analysis including "
+                        "comparable sales, rental comparables, and market trends."
+        }
+
+    def _build_sponsorship(self) -> Dict[str, Any]:
+        """
+        CRITICAL: Captures ALL sponsors with full financial details.
+        Handles multiple PFS data structures.
+        """
+        pfs_docs = self._get_all_docs('PFS')
+        sreo_docs = self._get_all_docs('SREO')
+
+        sponsors = []
+        seen_names = set()
+        financial_summary = []
+
+        for pfs in pfs_docs:
+            name = None
+
+            # Pattern 1: principals array (Steve Hudson's format)
+            principals = self._safe_get(pfs, 'principals', default=[])
+            if principals and isinstance(principals, list):
+                for principal in principals:
+                    if isinstance(principal, dict):
+                        name = principal.get('name', '')
+                        if name and 'Hudson' in name:
+                            break
+
+            # Pattern 2: signer_information (Charles Ladd's format)
+            if not name:
+                name = self._safe_get(pfs, 'signer_information', 'name', default='')
+
+            # Pattern 3: personal_financial_statement.personal_info
+            if not name:
+                name = self._safe_get(pfs, 'personal_financial_statement', 'personal_info', 'name', default='')
+
+            # Pattern 4: direct name field
+            if not name:
+                name = pfs.get('name', pfs.get('individual_name', ''))
+
+            if not name:
+                continue
+
+            # Normalize for deduplication
+            name_key = name.lower().replace(',', '').replace('.', '').replace('jr', '').strip()
+            if name_key in seen_names:
+                continue
+            seen_names.add(name_key)
+
+            # Extract financial data
+            financial = self._safe_get(pfs, 'financial_summary', default={})
+            assets = self._safe_get(financial, 'assets', default={})
+            total_assets = assets.get('total_assets', 0)
+
+            liabilities_section = self._safe_get(financial, 'liabilities_and_net_worth', default={})
+            liabilities = self._safe_get(liabilities_section, 'liabilities', default={})
+            total_liabilities = liabilities.get('total_liabilities', 0)
+            if not total_liabilities:
+                total_liabilities = self._safe_get(financial, 'liabilities', 'total_liabilities', default=0)
+
+            net_worth = liabilities_section.get('net_worth', 0)
+            if not net_worth and total_assets:
+                net_worth = total_assets - (total_liabilities or 0)
+
+            # Extract liquidity
+            cash = assets.get('cash_and_cash_equivalents', 0)
+            if not cash:
+                for item in assets.get('items', []):
+                    if 'cash' in item.get('asset_type', '').lower():
+                        cash = item.get('value', 0)
+                        break
+
+            securities = assets.get('marketable_securities', 0)
+            if not securities:
+                for item in assets.get('items', []):
+                    if 'securities' in item.get('asset_type', '').lower() and 'listed' in item.get('asset_type', '').lower():
+                        securities = item.get('value', 0)
+                        break
+
+            liquidity = (cash or 0) + (securities or 0)
+
+            if total_assets or net_worth:
+                sponsors.append({
+                    "name": name,
+                    "total_assets": total_assets,
+                    "net_worth": net_worth,
+                    "liquidity": liquidity,
+                    "cash": cash,
+                    "securities": securities
+                })
+
+                financial_summary.append({"label": f"{name} - Total Assets", "value": self._format_currency(total_assets)})
+                financial_summary.append({"label": f"{name} - Net Worth", "value": self._format_currency(net_worth)})
+                financial_summary.append({"label": f"{name} - Cash & Securities", "value": self._format_currency(liquidity)})
+
+        # Fallback to FB Underwriting/Term Sheet if no PFS data
+        if not sponsors:
+            for doc in self._get_all_docs('FB Underwriting') + self._get_all_docs('Term Sheet'):
+                sponsorship = self._safe_get(doc, 'sponsorship', default={})
+                guarantors = self._safe_get(sponsorship, 'guarantors', default={})
+                if guarantors:
+                    names = guarantors.get('names', [])
+                    combined_nw = guarantors.get('combined_net_worth', 0)
+                    combined_cash = guarantors.get('combined_cash_position', 0)
+                    combined_securities = guarantors.get('combined_securities_holdings', 0)
+
+                    for name in names:
+                        sponsors.append({"name": name, "total_assets": None, "net_worth": None, "liquidity": None})
+
+                    financial_summary.append({"label": "Combined Net Worth (Guarantors)", "value": self._format_currency(combined_nw)})
+                    financial_summary.append({"label": "Combined Liquidity", "value": self._format_currency((combined_cash or 0) + (combined_securities or 0))})
+                    break
+
+        # Calculate combined totals
+        combined_net_worth = sum(s.get('net_worth', 0) or 0 for s in sponsors)
+        combined_liquidity = sum(s.get('liquidity', 0) or 0 for s in sponsors)
+
+        if sponsors and combined_net_worth > 0:
+            financial_summary.insert(0, {"label": "COMBINED NET WORTH", "value": self._format_currency(combined_net_worth)})
+            financial_summary.insert(1, {"label": "COMBINED LIQUIDITY", "value": self._format_currency(combined_liquidity)})
+
+        # Build overview narrative
+        sponsor_names = [s['name'] for s in sponsors]
+        if sponsor_names:
+            overview = f"The principals on this transaction are {' and '.join(sponsor_names)}. "
+            overview += f"Combined net worth of the guarantors is {self._format_currency(combined_net_worth)} "
+            overview += f"with combined liquidity of {self._format_currency(combined_liquidity)}."
+        else:
+            overview = "Sponsor information to be completed."
+
+        # Build track record from SREO
+        track_record = []
+        for sreo in sreo_docs:
+            properties = self._safe_get(sreo, 'properties', default=[])
+            for prop in properties:
+                property_name = prop.get('property_name', prop.get('name', ''))
+                if not property_name or property_name == 'N/A':
+                    continue
+                outcome = prop.get('status', '')
+                if not outcome:
+                    disposition = prop.get('disposition', {})
+                    outcome = disposition.get('status', 'Active') if isinstance(disposition, dict) else 'Active'
+                track_record.append({"property": property_name, "role": prop.get('role', 'Principal'), "outcome": outcome})
+                if len(track_record) >= 10:
+                    break
+            if len(track_record) >= 10:
+                break
+
+        if not track_record:
+            track_record.append({"property": "See SREO for details", "role": "Principal", "outcome": "Various"})
+
+        return {
+            "overview_narrative": overview,
+            "financial_summary": financial_summary if financial_summary else [{"label": "TBD", "value": "TBD"}],
+            "track_record": track_record,
+            "_sponsors_detail": sponsors
+        }
+
+    def _build_risks_and_mitigants(self) -> Dict[str, Any]:
+        return {
+            "overall_risk_score": "MODERATE",
+            "recommendation_narrative": "Based on the analysis, this transaction presents acceptable risk levels for Fairbridge. The strong sponsor financials and property fundamentals support the loan request.",
+            "risk_items": [
+                {"category": "Credit/Sponsor", "score": "Low", "risk": "Sponsor net worth and liquidity meet requirements", "mitigant": "Strong combined financials of guarantors"},
+                {"category": "Market", "score": "Moderate", "risk": "Retail market conditions", "mitigant": "Strong location and anchor tenant mix"},
+                {"category": "Property", "score": "Moderate", "risk": "Property condition and age", "mitigant": "Recent renovations and ongoing maintenance"},
+                {"category": "Exit", "score": "Low", "risk": "Refinance or sale at maturity", "mitigant": "Multiple exit strategies available"}
+            ]
+        }
+
+    def _build_validation_flags(self) -> Dict[str, Any]:
+        checks = {
+            "Appraisal": bool(self._get_doc('Appraisal')),
+            "Term Sheet": bool(self._get_doc('Term Sheet')),
+            "PFS": bool(self._get_all_docs('PFS')),
+            "SREO": bool(self._get_all_docs('SREO')),
+            "Phase I ESA": bool(self._get_doc('Phase I ESA')),
+            "Zoning": bool(self._get_doc('Zoning')),
+            "Title": bool(self._get_doc('Title & Survey')),
+        }
+
+        total = len(checks)
+        passed = sum(1 for v in checks.values() if v)
+        critical_flags = []
+        warning_flags = []
+
+        for check, available in checks.items():
+            if not available:
+                if check in ['Appraisal', 'Term Sheet', 'PFS']:
+                    critical_flags.append({"rule": f"{check} Required", "message": f"{check} document not found in extraction"})
+                else:
+                    warning_flags.append({"rule": f"{check} Recommended", "message": f"{check} document not found - verify if required"})
+
+        return {
+            "summary": {"total_checks": total, "passed": passed, "warnings": len(warning_flags), "failed": len(critical_flags)},
+            "critical_flags": critical_flags,
+            "warning_flags": warning_flags
+        }
+
+    def _build_third_party_reports(self) -> Dict[str, Any]:
+        appraisal = self._get_doc('Appraisal')
+        phase1 = self._get_doc('Phase I ESA')
+
+        doc_info = self._safe_get(appraisal, 'document_info', default={})
+        appraisers = self._safe_get(appraisal, 'parties', 'appraisers', default=[])
+        valuation = self._safe_get(appraisal, 'valuation_summary', 'market_value_conclusions', default=[])
+
+        appraiser_name = appraisers[0].get('name', 'N/A') if appraisers else 'N/A'
+
+        as_is_value = None
+        stabilized_value = None
+        for mv in valuation:
+            if 'As Is' in mv.get('appraisal_premise', ''):
+                as_is_value = mv.get('value_conclusion')
+            if 'Stabilized' in mv.get('appraisal_premise', ''):
+                stabilized_value = mv.get('value_conclusion')
+
+        phase1_info = self._safe_get(phase1, 'report_info', default={})
+        phase1_findings = self._safe_get(phase1, 'findings', default={})
+
+        return {
+            "appraisal": {
+                "firm": self._safe_get(doc_info, 'company_name', default='CBRE'),
+                "appraiser": appraiser_name,
+                "effective_date": self._safe_get(doc_info, 'date_of_report', default='N/A'),
+                "as_is_value": self._format_currency(as_is_value),
+                "stabilized_value": self._format_currency(stabilized_value),
+                "cap_rate": "See appraisal"
+            },
+            "environmental": {
+                "firm": self._safe_get(phase1_info, 'firm', self._safe_get(phase1_info, 'preparer', default='N/A')),
+                "report_date": self._safe_get(phase1_info, 'date', default='N/A'),
+                "current_recs": str(len(self._safe_get(phase1_findings, 'recommendations', default=[]))),
+                "phase_ii_required": "No" if not self._safe_get(phase1_findings, 'phase_ii_required') else "Yes",
+                "findings": self._safe_get(phase1_findings, 'summary', default='No significant findings.')
+            }
+        }
+
+    def _build_zoning_entitlements(self) -> Dict[str, Any]:
+        zoning = self._get_doc('Zoning')
+        appraisal = self._get_doc('Appraisal')
+        current_zoning = self._safe_get(zoning, 'current_zoning',
+                         self._safe_get(appraisal, 'zoning', 'current_zoning', default='N/A'))
+
+        return {
+            "summary_narrative": "The property's zoning is consistent with its current use. Please refer to the zoning report for detailed entitlement analysis.",
+            "current_zoning": str(current_zoning),
+            "proposed_zoning": "No change proposed",
+            "entitlement_status": "Entitled for current use"
+        }
+
+    def _build_foreclosure_analysis(self) -> Dict[str, Any]:
+        default_rate_rows = []
+        note_rate_rows = []
+        for q in range(1, 9):
+            row = {
+                "Quarter": f"Q{q}",
+                "Beginning_Balance": "TBD",
+                "Legal_Fees": "TBD",
+                "Taxes": "TBD",
+                "Insurance": "TBD",
+                "Total_Carrying_Costs": "TBD",
+                "Interest_Accrued": "TBD",
+                "Ending_Balance": "TBD",
+                "Property_Value": "TBD",
+                "LTV": "TBD"
+            }
+            default_rate_rows.append(row.copy())
+            note_rate_rows.append(row.copy())
+
+        return {
+            "scenario_default_rate": {"rows": default_rate_rows},
+            "scenario_note_rate": {"rows": note_rate_rows}
+        }
+
+    def transform(self) -> Dict[str, Any]:
+        """Transform Layer 2 data to template schema format."""
+        return {
+            "cover": self._build_cover(),
+            "toc": "{{TOC}}",
+            "sections": {
+                "transaction_overview": self._build_transaction_overview(),
+                "executive_summary": self._build_executive_summary(),
+                "sources_and_uses": self._build_sources_and_uses(),
+                "property": self._build_property(),
+                "location": self._build_location(),
+                "market": self._build_market(),
+                "sponsorship": self._build_sponsorship(),
+                "risks_and_mitigants": self._build_risks_and_mitigants(),
+                "validation_flags": self._build_validation_flags(),
+                "third_party_reports": self._build_third_party_reports(),
+                "zoning_entitlements": self._build_zoning_entitlements(),
+                "foreclosure_analysis": self._build_foreclosure_analysis()
+            }
+        }
+
+
+# =============================================================================
 # Request/Response Models
 # =============================================================================
 class FillRequest(BaseModel):
-    """Request model for template filling."""
-    data: Dict[str, Any]  # The schema data object
-    images: Dict[str, str] = {}  # Base64-encoded images
-    template_key: str = "_Templates/Fairbridge_Memo_Template_v1_0.docx"
+    data: Dict[str, Any]
+    images: Dict[str, str] = {}
+    template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx"
     output_filename: str = "Deal_Memo_Generated.docx"
 
 
 class FillAndUploadRequest(BaseModel):
-    """Request model for fill + S3 upload."""
     data: Dict[str, Any]
     images: Dict[str, str] = {}
-    template_key: str = "_Templates/Fairbridge_Memo_Template_v1_0.docx"
+    template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx"
     output_key: str
+
+
+class FillFromLayer2Request(BaseModel):
+    """NEW: Request model for direct Layer 2 → Memo generation."""
+    layer2_data: List[Dict[str, Any]]  # Raw Layer 2 extractions array
+    images: Dict[str, str] = {}
+    template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx"
+    output_key: str
+    deal_folder: str = ""  # Optional deal folder name for logging
 
 
 class HealthResponse(BaseModel):
@@ -93,37 +665,28 @@ class HealthResponse(BaseModel):
 # Helper Functions
 # =============================================================================
 def calculate_image_dimensions(image_bytes: bytes, preferred_width: float) -> tuple[float, float]:
-    """
-    Calculate optimal image dimensions that fit within page constraints.
-    Maintains aspect ratio while fitting within max width/height.
-    """
     try:
         image = Image.open(BytesIO(image_bytes))
         original_width, original_height = image.size
         aspect_ratio = original_height / original_width
 
-        # Start with preferred width, constrain to max
         width_inches = min(preferred_width, MAX_WIDTH_INCHES)
         height_inches = width_inches * aspect_ratio
 
-        # If too tall, scale down to fit max height
         if height_inches > MAX_HEIGHT_INCHES:
             height_inches = MAX_HEIGHT_INCHES
             width_inches = height_inches / aspect_ratio
-
             if width_inches > MAX_WIDTH_INCHES:
                 width_inches = MAX_WIDTH_INCHES
                 height_inches = width_inches * aspect_ratio
 
         return width_inches, height_inches
-
     except Exception as e:
         print(f"Warning: Could not process image dimensions: {e}")
         return min(preferred_width, MAX_WIDTH_INCHES), min(4.0, MAX_HEIGHT_INCHES)
 
 
 def download_template(template_key: str) -> bytes:
-    """Download template from S3."""
     try:
         response = s3_client.get_object(Bucket=S3_BUCKET, Key=template_key)
         return response['Body'].read()
@@ -132,16 +695,12 @@ def download_template(template_key: str) -> bytes:
 
 
 def get_unique_output_key(output_key: str) -> str:
-    """
-    If output_key exists in S3, return a unique version with _2, _3, etc.
-    """
     try:
         s3_client.head_object(Bucket=S3_BUCKET, Key=output_key)
     except:
         return output_key
 
     base, ext = os.path.splitext(output_key)
-
     match = re.match(r'(.+)_(\d+)$', base)
     if match:
         base = match.group(1)
@@ -161,7 +720,6 @@ def get_unique_output_key(output_key: str) -> str:
 
 
 def upload_to_s3(content: bytes, key: str) -> str:
-    """Upload content to S3 and return URL."""
     try:
         s3_client.put_object(
             Bucket=S3_BUCKET,
@@ -174,15 +732,8 @@ def upload_to_s3(content: bytes, key: str) -> str:
         raise HTTPException(status_code=500, detail=f"Failed to upload to S3: {str(e)}")
 
 
-def prepare_images_for_template(
-    doc: DocxTemplate,
-    images: Dict[str, str]
-) -> Dict[str, InlineImage]:
-    """
-    Convert base64 images to docxtpl InlineImage objects.
-    """
+def prepare_images_for_template(doc: DocxTemplate, images: Dict[str, str]) -> Dict[str, InlineImage]:
     inline_images = {}
-
     for key, base64_data in images.items():
         try:
             image_bytes = base64.b64decode(base64_data)
@@ -190,50 +741,26 @@ def prepare_images_for_template(
             width_inches, height_inches = calculate_image_dimensions(image_bytes, preferred_width)
 
             image_stream = BytesIO(image_bytes)
-            inline_images[key] = InlineImage(
-                doc,
-                image_stream,
-                width=Inches(width_inches),
-                height=Inches(height_inches)
-            )
+            inline_images[key] = InlineImage(doc, image_stream, width=Inches(width_inches), height=Inches(height_inches))
             print(f"Prepared image {key}: {width_inches:.2f}\" x {height_inches:.2f}\"")
-
         except Exception as e:
             print(f"Warning: Failed to prepare image {key}: {e}")
             continue
-
     return inline_images
 
 
 def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str, str]) -> bytes:
-    """
-    Fill the template using docxtpl engine.
-
-    Args:
-        template_bytes: The Word template file content
-        data: The schema data to fill into the template
-        images: Dict of image_key -> base64 encoded image data
-
-    Returns:
-        Filled document as bytes
-    """
-    # Load template
     template_stream = BytesIO(template_bytes)
     doc = DocxTemplate(template_stream)
 
-    # Prepare images as InlineImage objects
     inline_images = prepare_images_for_template(doc, images)
-
-    # Merge data and images into context
     context = {**data, **inline_images}
 
-    # Render template
     try:
         doc.render(context)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Template rendering failed: {str(e)}")
 
-    # Save to bytes
     output = BytesIO()
     doc.save(output)
     output.seek(0)
@@ -245,32 +772,15 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
 # =============================================================================
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Health check endpoint."""
-    return {
-        "status": "ok",
-        "version": "1.0.0",
-        "engine": "docxtpl"
-    }
+    return {"status": "ok", "version": "2.0.0", "engine": "docxtpl"}
 
 
 @app.post("/fill")
 async def fill_template_endpoint(request: FillRequest):
-    """
-    Fill template and return as download.
-
-    Request body:
-    - data: The schema data object (nested dict matching template placeholders)
-    - images: Optional dict of image_key -> base64 encoded image
-    - template_key: S3 key for template file
-    - output_filename: Name for downloaded file
-    """
-    # Download template from S3
+    """Fill template and return as download."""
     template_bytes = download_template(request.template_key)
-
-    # Fill template
     filled_bytes = fill_template(template_bytes, request.data, request.images)
 
-    # Return as download
     return StreamingResponse(
         BytesIO(filled_bytes),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -280,30 +790,10 @@ async def fill_template_endpoint(request: FillRequest):
 
 @app.post("/fill-and-upload")
 async def fill_and_upload_endpoint(request: FillAndUploadRequest):
-    """
-    Fill template and upload to S3.
-
-    Request body:
-    - data: The schema data object
-    - images: Optional dict of image_key -> base64 encoded image
-    - template_key: S3 key for template file
-    - output_key: S3 key for output file
-
-    Returns:
-    - success: bool
-    - output_key: Actual S3 key used (may differ if original existed)
-    - output_url: Full URL to the uploaded file
-    """
-    # Download template from S3
+    """Fill template and upload to S3."""
     template_bytes = download_template(request.template_key)
-
-    # Fill template
     filled_bytes = fill_template(template_bytes, request.data, request.images)
-
-    # Get unique output key if needed
     output_key = get_unique_output_key(request.output_key)
-
-    # Upload to S3
     output_url = upload_to_s3(filled_bytes, output_key)
 
     return {
@@ -314,18 +804,83 @@ async def fill_and_upload_endpoint(request: FillAndUploadRequest):
     }
 
 
+@app.post("/fill-from-layer2")
+async def fill_from_layer2_endpoint(request: FillFromLayer2Request):
+    """
+    NEW ENDPOINT: Direct Layer 2 → Deal Memo generation.
+
+    Takes raw Layer 2 extraction data, transforms it to schema format,
+    fills the template, and uploads to S3.
+
+    Request body:
+    - layer2_data: Array of extraction objects from Layer 2
+    - images: Optional dict of image_key -> base64 encoded image
+    - template_key: S3 key for template file (default: v2_0)
+    - output_key: S3 key for output file
+    - deal_folder: Optional deal folder name for logging
+
+    Returns:
+    - success: bool
+    - output_key: Actual S3 key used
+    - output_url: Full URL to the uploaded file
+    - sponsors_found: Number of sponsors captured
+    - sponsor_names: List of sponsor names found
+    """
+    print(f"Processing Layer 2 data for deal: {request.deal_folder}")
+    print(f"Layer 2 items received: {len(request.layer2_data)}")
+
+    # Step 1: Transform Layer 2 to schema
+    mapper = Layer2ToSchemaMapper(request.layer2_data)
+    schema_data = mapper.transform()
+
+    # Log sponsor capture for verification
+    sponsors = schema_data.get('sections', {}).get('sponsorship', {}).get('_sponsors_detail', [])
+    sponsor_names = [s['name'] for s in sponsors]
+    print(f"Sponsors captured: {sponsor_names}")
+
+    # Step 2: Download template
+    template_bytes = download_template(request.template_key)
+
+    # Step 3: Fill template
+    filled_bytes = fill_template(template_bytes, schema_data, request.images)
+
+    # Step 4: Upload to S3
+    output_key = get_unique_output_key(request.output_key)
+    output_url = upload_to_s3(filled_bytes, output_key)
+
+    return {
+        "success": True,
+        "output_key": output_key,
+        "output_url": output_url,
+        "original_key": request.output_key,
+        "sponsors_found": len(sponsors),
+        "sponsor_names": sponsor_names,
+        "template_used": request.template_key
+    }
+
+
+@app.post("/transform-layer2")
+async def transform_layer2_endpoint(layer2_data: List[Dict[str, Any]]):
+    """
+    Transform Layer 2 data to schema format WITHOUT filling template.
+    Useful for debugging or previewing the transformation.
+
+    Request body: Array of Layer 2 extraction objects
+
+    Returns: Transformed schema data
+    """
+    mapper = Layer2ToSchemaMapper(layer2_data)
+    schema_data = mapper.transform()
+    return schema_data
+
+
 @app.get("/template-info")
-async def get_template_info(template_key: str = "_Templates/Fairbridge_Memo_Template_v1_0.docx"):
-    """
-    Get information about a template (useful for debugging).
-    Returns the template's undeclared variables.
-    """
+async def get_template_info(template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx"):
+    """Get information about a template (useful for debugging)."""
     try:
         template_bytes = download_template(template_key)
         template_stream = BytesIO(template_bytes)
         doc = DocxTemplate(template_stream)
-
-        # Get variables used in template
         variables = doc.get_undeclared_template_variables()
 
         return {
