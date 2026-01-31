@@ -733,10 +733,12 @@ class DealInputToSchemaMapper:
         narrative = self._narratives.get("transaction_overview", "")
         if not narrative:
             narrative = f"Bridge loan request for {self._property.get('name', 'the property')}. See narratives for full overview."
+        narrative = narrative[:4000] if isinstance(narrative, str) else str(narrative)[:4000]
         items = (self._highlights.get("items") or [])[:6]
         key_highlights = [h.get("highlight", "") or h.get("description", "") for h in items if isinstance(h, dict)]
         return {
-            "narrative": narrative[:4000] if isinstance(narrative, str) else str(narrative)[:4000],
+            "narrative": narrative,
+            "transaction_overview": narrative,
             "key_highlights": key_highlights or ["See deal highlights."],
             "recommendation": "APPROVE - Subject to conditions",
             "conditions": ["Standard closing conditions", "Satisfactory title and survey review", "Completion of legal documentation"],
@@ -872,10 +874,12 @@ class DealInputToSchemaMapper:
                 "mitigant": r.get("mitigant", ""),
             })
         narrative = self._narratives.get("risks_mitigants_narrative", "")
+        risk_list = risk_items if risk_items else [{"category": "General", "score": "Moderate", "risk": "See risks and mitigants.", "mitigant": "See narrative."}]
         return {
             "overall_risk_score": "MODERATE",
             "recommendation_narrative": narrative[:2000] if narrative else "Based on the analysis, this transaction presents acceptable risk levels for Fairbridge.",
-            "risk_items": risk_items if risk_items else [{"category": "General", "score": "Moderate", "risk": "See risks and mitigants.", "mitigant": "See narrative."}],
+            "risk_items": risk_list,
+            "items": risk_list,
         }
 
     def _build_validation_flags(self) -> Dict[str, Any]:
@@ -902,6 +906,11 @@ class DealInputToSchemaMapper:
                 "phase_ii_required": "No",
                 "findings": (self._environmental.get("findings_summary") or "N/A")[:500],
             },
+            "pca": {
+                "firm": self._due_diligence.get("pca_firm") or "N/A",
+                "report_date": "N/A",
+                "summary": self._narratives.get("pca_narrative") or "See property condition assessment.",
+            },
         }
 
     def _build_zoning_entitlements(self) -> Dict[str, Any]:
@@ -913,6 +922,7 @@ class DealInputToSchemaMapper:
             "current_zoning": self._zoning.get("zone_code", "N/A"),
             "proposed_zoning": "See redevelopment",
             "entitlement_status": "See zoning narrative",
+            "exists": bool(self._zoning),
         }
 
     def _build_foreclosure_analysis(self) -> Dict[str, Any]:
@@ -922,7 +932,7 @@ class DealInputToSchemaMapper:
 
     def transform(self) -> Dict[str, Any]:
         """Transform deal input to template schema format."""
-        return {
+        out = {
             "cover": self._build_cover(),
             "toc": "{{TOC}}",
             "sections": {
@@ -940,6 +950,47 @@ class DealInputToSchemaMapper:
                 "foreclosure_analysis": self._build_foreclosure_analysis(),
             },
         }
+        raw_li = self.deal.get("loan_issues")
+        if raw_li is not None:
+            out["loan_issues"] = {
+                "income_producing": raw_li.get("income_producing") if isinstance(raw_li.get("income_producing"), list) else (raw_li.get("income_producing") or []),
+                "development": raw_li.get("development") if isinstance(raw_li.get("development"), list) else (raw_li.get("development") or []),
+            }
+        cv = self.deal.get("collaborative_ventures")
+        if isinstance(cv, list):
+            out["collaborative_ventures"] = {"items": cv}
+        elif isinstance(cv, dict):
+            out["collaborative_ventures"] = {"items": list(cv.values()) if cv else []}
+        else:
+            out["collaborative_ventures"] = {"items": []}
+        for key in ("capital_stack", "closing_disbursement", "rent_roll", "construction_budget", "comps", "redevelopment", "due_diligence"):
+            out[key] = self.deal.get(key) if self.deal.get(key) is not None else {}
+        al = self.deal.get("active_litigation") or {}
+        if isinstance(al, dict):
+            cases = al.get("cases")
+            if isinstance(cases, dict):
+                al = {**al, "cases": list(cases.values())}
+            elif cases is None:
+                al = {**al, "cases": []}
+        out["active_litigation"] = al
+        dh = self.deal.get("deal_highlights") or {}
+        out["deal_highlights"] = dict(dh) if isinstance(dh, dict) else {}
+        if "items" not in out["deal_highlights"]:
+            out["deal_highlights"]["items"] = []
+        cd = self.deal.get("closing_disbursement") or {}
+        narrative = self._narratives.get("closing_funding_narrative") or ""
+        out["closing_funding_and_reserves"] = dict(cd) if isinstance(cd, dict) else {}
+        if narrative:
+            out["closing_funding_and_reserves"]["narrative"] = narrative
+        lev = self._leverage
+        out["LTC"] = lev.get("fb_ltc_at_closing") or lev.get("ltc_at_maturity") or "N/A"
+        out["LTV"] = lev.get("ltv_at_closing") or lev.get("ltv_at_maturity") or "N/A"
+        out["property_value"] = self._valuation if self._valuation else {}
+        exit_narr = self._narratives.get("exit_strategy") or ""
+        out["exit_strategy"] = {"narrative": exit_narr} if isinstance(exit_narr, str) else (exit_narr if isinstance(exit_narr, dict) else {"narrative": ""})
+        fa_narr = self._narratives.get("foreclosure_assumptions") or ""
+        out["foreclosure_assumptions"] = {"narrative": fa_narr} if isinstance(fa_narr, str) else (fa_narr if isinstance(fa_narr, dict) else {"narrative": ""})
+        return out
 
 
 # =============================================================================
@@ -1077,8 +1128,15 @@ def prepare_images_for_template(doc: DocxTemplate, images: Dict[str, str]) -> Di
     return inline_images
 
 
+# Template placeholder names that differ from our schema keys. Add aliases here as we find them.
+# To get the full list of variables the template expects: GET /template-info?template_key=_Templates/FB_Deal_Memo_Template.docx
+TEMPLATE_ALIASES = {
+    "leverage": "leverage_metrics",
+}
+
+
 def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Flatten schema so template can use top-level vars like deal_facts, loan_terms, narrative."""
+    """Flatten schema so template can use top-level vars like deal_facts, loan_terms, leverage, narrative."""
     flat = dict(data)
     sections = flat.pop("sections", None) or {}
     for _section_name, section_data in sections.items():
@@ -1086,7 +1144,87 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
             for k, v in section_data.items():
                 if k not in flat:
                     flat[k] = v
+    for template_name, schema_key in TEMPLATE_ALIASES.items():
+        if template_name not in flat and schema_key in flat:
+            flat[template_name] = flat[schema_key]
+    if "sponsor" not in flat and "sponsorship" in sections:
+        flat["sponsor"] = sections["sponsorship"]
+    if "sponsors" not in flat and "sponsorship" in sections:
+        flat["sponsors"] = sections["sponsorship"].get("_sponsors_detail") or []
+    if "sources_and_uses" not in flat and "sources_and_uses" in sections:
+        flat["sources_and_uses"] = sections["sources_and_uses"]
+    if "property_overview" not in flat and "property" in sections:
+        flat["property_overview"] = sections["property"]
+    for section_name in ("zoning_entitlements", "risks_and_mitigants", "third_party_reports", "validation_flags", "foreclosure_analysis", "location", "market"):
+        if section_name not in flat and section_name in sections:
+            flat[section_name] = sections[section_name]
+    if "location_overview" not in flat and "location" in sections:
+        flat["location_overview"] = sections["location"]
+    if "market_overview" not in flat and "market" in sections:
+        flat["market_overview"] = sections["market"]
+    if "financial_info" not in flat and "sponsorship" in sections:
+        flat["financial_info"] = sections["sponsorship"].get("financial_summary", [])
+    fa = sections.get("foreclosure_analysis") or {}
+    def _scenario_with_items(s):
+        if not s or not isinstance(s, dict):
+            s = {"rows": []}
+        rows = s.get("rows") if isinstance(s.get("rows"), list) else []
+        return {**s, "rows": rows, "items": rows}
+    if "default_interest_scenario" not in flat:
+        flat["default_interest_scenario"] = _scenario_with_items(fa.get("scenario_default_rate"))
+    if "note_interest_scenario" not in flat:
+        flat["note_interest_scenario"] = _scenario_with_items(fa.get("scenario_note_rate"))
     return flat
+
+
+class _DictWithItemsList:
+    """Wrapper so Jinja 'for x in obj.items' gets a list (template uses .items not .items())."""
+    __slots__ = ("_d",)
+
+    def __init__(self, d: dict):
+        self._d = dict(d)
+        if "items" not in self._d or not isinstance(self._d.get("items"), list):
+            self._d["items"] = list(self._d.items())
+
+    def __getitem__(self, k):
+        return self._d[k]
+
+    def get(self, k, default=None):
+        return self._d.get(k, default)
+
+    def __getattr__(self, k):
+        if k == "items":
+            return self._d["items"]
+        return self._d.get(k)
+
+    def __contains__(self, k):
+        return k in self._d
+
+    def __iter__(self):
+        return iter(self._d)
+
+    def keys(self):
+        return self._d.keys()
+
+    def values(self):
+        return self._d.values()
+
+
+def _ensure_items_on_dicts(obj: Any, seen: Optional[set] = None, root: bool = True) -> None:
+    """Recursively ensure every dict (except root) has an 'items' key that is a list (for Jinja .items iteration)."""
+    if seen is None:
+        seen = set()
+    if id(obj) in seen:
+        return
+    if isinstance(obj, dict):
+        seen.add(id(obj))
+        for v in obj.values():
+            _ensure_items_on_dicts(v, seen, root=False)
+        if not root and "items" not in obj:
+            obj["items"] = list(obj.items())
+    elif isinstance(obj, list):
+        for item in obj:
+            _ensure_items_on_dicts(item, seen, root=False)
 
 
 def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str, str]) -> bytes:
@@ -1097,6 +1235,20 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
     # Flatten sections into root so template placeholders like {{ deal_facts }} work
     flat_data = flatten_schema_for_template(data)
     context = {**flat_data, **inline_images}
+    if "images" not in context:
+        context["images"] = []
+    _ensure_items_on_dicts(context)
+    for k, v in list(context.items()):
+        if isinstance(v, dict) and not hasattr(v, "_d"):
+            context[k] = _DictWithItemsList(v)
+    if "sponsors" in context and not isinstance(context["sponsors"], list):
+        v = context["sponsors"]
+        context["sponsors"] = list(v.values()) if isinstance(v, dict) else (list(v) if hasattr(v, "__iter__") and not isinstance(v, str) else [])
+    if "loan_issues" in context and isinstance(context["loan_issues"], dict):
+        li = context["loan_issues"]
+        for k in ("income_producing", "development"):
+            if k in li and li[k] is not None and not isinstance(li[k], list):
+                li[k] = []
 
     try:
         doc.render(context)

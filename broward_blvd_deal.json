@@ -1,0 +1,239 @@
+[
+  {
+    "deal_id": "broward-blvd",
+    "deal_folder": "7001 and 7007-7181 W. Broward Blvd., Plantation, FL",
+    "generated_at": "2026-01-31T19:32:33.420Z",
+    "cover": {
+      "property_address": "7001 and 7007-7181 W. Broward Blvd, Plantation, FL",
+      "credit_committee": "BW, JL, SW",
+      "underwriting_team": "AB, EO",
+      "date": "7/17/2025"
+    },
+    "deal_facts": {
+      "property_type": "Retail",
+      "loan_purpose": "Refinance/Pre-Development",
+      "loan_amount": "$27,000,000",
+      "source": "Thomas D Wood"
+    },
+    "loan_terms": {
+      "interest_rate": {
+        "description": "The rate of interest charged shall be equal to the greater of: (i) the 1-Month CME SOFR rate (the \"SOFR Rate\") plus six hundred seventy (670) basis points per annum (with a SOFR floor of 4.30%), or (ii) eleven percent (11.00%) per annum, based upon a 360-day year for the actual number of days outstanding.",
+        "default_rate": "The default interest rate on the Loan against the Property shall be the lesser of twenty-four percent (24%) per annum or the highest legally permissible rate in the State of Florida."
+      },
+      "origination_fee": "Borrower shall pay an origination fee of one (1.00%) percent of the total Loan Amount.",
+      "exit_fee": "Borrower shall pay an exit fee of one (1.00%) percent of the total Loan Amount.",
+      "prepayment": "Prepayment of the Loan shall be permitted at any time, provided that the Lender shall have received to such payment date, a minimum of nine (9) months interest on the Loan on or prior to such Prepayment date, which shall not include interim interest payable at closing.",
+      "guaranty": "Guarantors shall execute a \"Bad Boy\" carveout guaranty and an interest and carry guaranty. The carry guaranty will terminate on foreclosure or an approved deed in lieu transaction, subject to satisfaction of customary conditions to be specified in the loan documents. Interest and carry expenses will continue to be funded by Lender in accordance with the budget, subject to customary limitations.",
+      "collateral": "The Loan will be secured by, among other things, a first mortgage lien and first priority security interest, as applicable, on the Borrower's fee interest in the Property, all improvements, personal property, and all leases, security deposits, rents, issues, profits, revenues and other income, deposit and cash management accounts, and reserve funds, all as more particularly described in the Loan documents, together with a pledge of 100% of the membership interests in Borrower."
+    },
+    "leverage": {
+      "fb_ltc_at_closing": "51.00%",
+      "ltc_at_maturity": "57.00%",
+      "ltv_at_closing": "37.00%",
+      "ltv_at_maturity": "42.00%",
+      "ltpp": "57.00%",
+      "debt_yield_fully_drawn": "6.81%"
+    },
+    "sponsor": {
+      "table": [
+        {
+          "entity": "Foreward One Management, LLC",
+          "profit_percentage_interest": "20%",
+          "membership_interest": 200,
+          "capital_interest_amount": null,
+          "capital_interest_percentage": null,
+          "internal_split": [
+            { "principal": "Charlie Ladd", "share_of_interest_pct": 12 },
+            { "principal": "Steve Hudson", "share_of_interest_pct": 8 }
+          ]
+        },
+        {
+          "entity": "Las Olas Capital - Real Estate Fund Iv, L.P.",
+          "profit_percentage_interest": "41%",
+          "membership_interest": 410,
+          "capital_interest_amount": 10250000,
+          "capital_interest_percentage": "51.25%"
+        },
+        {
+          "entity": "TOTAL",
+          "profit_percentage_interest": "100%",
+          "membership_interest": 1000,
+          "capital_interest_amount": 20000000,
+          "capital_interest_percentage": "100%"
+        }
+      ],
+      "borrowing_entity": "7023 Broward LLC",
+      "guarantors": {
+        "names": ["Steve Hudson", "Charlie Ladd Jr."],
+        "guarantees": ["\"bad boy\" carve-out", "interest", "carry guarantees"],
+        "combined_net_worth": 239650000,
+        "combined_cash_position": 8400000,
+        "combined_securities_holdings": 92249616,
+        "lender_requirements": {
+          "minimum_net_worth": 150000000,
+          "minimum_liquidity_securities": 30000000
+        }
+      },
+      "principals": [
+        {
+          "name": "Charles B. Ladd",
+          "title": "Founder and President",
+          "company": "Barron Real Estate",
+          "experience": "He has over 35 years of experience in South Florida real estate development.",
+          "financial_profile": {
+            "credit_score": 768,
+            "net_worth": 35610000,
+            "liquid_assets": 185000
+          }
+        },
+        {
+          "name": "Steven W. Hudson",
+          "title": "President and CEO",
+          "company": "Hudson Capital Group (HCG)",
+          "experience": "Since inception, HCG has been involved in the development of over 1 million square feet of Class A office space in Fort Lauderdale.",
+          "financial_profile": {
+            "credit_score": 766,
+            "net_worth": 286126000,
+            "liquid_assets": 100345488
+          }
+        }
+      ]
+    },
+    "sources_and_uses": {
+      "table": {
+        "title": "Fairbridge Sources and Uses",
+        "sources": [
+          { "item": "Loan", "amount": 27000000 },
+          { "item": "Equity Already Invested", "amount": 22278153 },
+          { "item": "Equity Required At Closing", "amount": 980876 }
+        ],
+        "total_sources": 50259029,
+        "uses": [
+          {
+            "category": "Accretive Costs",
+            "items": [
+              { "item": "Property Acquisition", "amount": 45775000 },
+              { "item": "Soft Costs Total", "amount": 1238529 },
+              { "item": "Hard Costs Total", "amount": 0 }
+            ]
+          },
+          {
+            "category": "Financing Costs",
+            "items": [{ "item": "Interest Reserve**", "amount": 1800000, "rate_pct": 11 }]
+          },
+          {
+            "category": "Closing Costs",
+            "items": [
+              { "item": "Origination Fee", "amount": 270000, "rate_pct": 1 },
+              { "item": "Broker Fee", "amount": 135000, "rate_pct": 0.5 },
+              { "item": "Closing Costs (Title)*", "amount": 175500, "rate_pct": 0.65 },
+              { "item": "Lender Legal*", "amount": 75000 },
+              { "item": "Borrower Legal*", "amount": 40000 },
+              { "item": "Misc*", "amount": 100000 },
+              { "item": "Dollar Tree Litigation Holdback", "amount": 650000 }
+            ]
+          }
+        ],
+        "total_uses": 50259029,
+        "notes": ["* Estimated", "**FB intends to sweep all free NOI at property, which should create 18 month coverage period"]
+      }
+    },
+    "property": {
+      "name": "Plantation Marketplace",
+      "address": {
+        "street": "7007 W Broward Blvd",
+        "city": "Plantation",
+        "county": "Broward County",
+        "state": "Florida",
+        "zip": "33317"
+      },
+      "property_type": "Retail (Neighborhood/Community Center)",
+      "year_built": [1976, 1979],
+      "year_renovated": 2000,
+      "land_area_acres": 22.79,
+      "land_area_sf": 992684,
+      "building_sf": 240987,
+      "num_buildings": 4,
+      "num_stories": 1,
+      "occupancy_current": 82,
+      "occupancy_stabilized": 96,
+      "anchor_tenants": "Food Fair Wholesale Fresh Market, Amped Fitness, CVS, MD Now, Bank of America, Brick America",
+      "parking_spaces": 991,
+      "parking_ratio": 4.11,
+      "condition": "Average",
+      "parcel_numbers": "5041-03-56-0010, 5041-03-45-0010"
+    },
+    "valuation": {
+      "as_is_value": "$46,600,000",
+      "as_stabilized_value": "$51,800,000",
+      "cap_rate": "6.00%",
+      "noi": "$2,982,866",
+      "effective_gross_income": "$5,119,263",
+      "operating_expenses": "$2,136,397"
+    },
+    "due_diligence": {
+      "lenders_counsel": null,
+      "borrowers_counsel": null,
+      "appraisal_firm": "Jay Hertzbach",
+      "appraisal_company": "CBRE Valuation & Advisory Services",
+      "environmental_firm": "AST FLORIDA ENVIRONMENTAL INC"
+    },
+    "environmental": {
+      "firm": "AST FLORIDA ENVIRONMENTAL INC",
+      "report_date": "April 2022",
+      "findings_summary": "A review of current and past uses of the subject property and adjoining/nearby properties did not identify evidence of suspect environmental conditions in connection with the subject property that were recognized environmental conditions.",
+      "recognized_environmental_conditions": [],
+      "historical_recs": []
+    },
+    "zoning": {
+      "zone_code": "B-2P",
+      "permitted_uses": "Animal grooming, Veterinary hospital/clinic, Business service center, Restaurant, Retail sales establishments, Hotel or motel, among others.",
+      "highest_best_use_vacant": "Mixed-Use Retail and Residential",
+      "highest_best_use_improved": "Redevelopment to Higher Density Mixed-Use Retail and Residential"
+    },
+    "risks_and_mitigants": {
+      "items": [
+        {
+          "risk": "Entitlement Risk",
+          "description": "The project's density increase depends on approval of a land use amendment.",
+          "mitigant": "The Sponsors intend to proceed under Florida's Live Local Act if the amendment is denied."
+        },
+        {
+          "risk": "Exit Strategy Execution",
+          "description": "The exit strategy depends on selling Phases I and II land to residential developers.",
+          "mitigant": "No loan proceeds will be distributed to the Sponsor, preserving $21+ million of at-risk equity."
+        }
+      ]
+    },
+    "deal_highlights": {
+      "items": [
+        {
+          "highlight": "Strong In-Place Cash Flow",
+          "description": "The retail center currently generates approximately $1.8 million in annual cash flow."
+        },
+        {
+          "highlight": "Institutional Sponsorship with Local Expertise",
+          "description": "The Sponsorship team, led by Steven Hudson and Charles Ladd Jr., has a combined net worth exceeding $320 million."
+        },
+        {
+          "highlight": "Low LTV/LTC",
+          "description": "The Loan has been sized to a conservative 40% LTV at closing (41% fully drawn) and 57% LTC."
+        }
+      ]
+    },
+    "loan_issues": {
+      "income_producing": null,
+      "development": null
+    },
+    "narratives": {
+      "transaction_overview": "Fairbridge Asset Management has been presented with an opportunity to provide a $27,000,000 commercial bridge loan to 7023 Broward LLC for the refinancing and pre-development of a strategically positioned retail property in Plantation, Florida. The transaction represents a compelling value-add opportunity that combines immediate cash flow stabilization with significant long-term development upside through multifamily conversion.",
+      "property_overview": "Plantation Marketplace represents a well-established neighborhood retail center strategically positioned at 7007 West Broward Boulevard in Plantation, Florida. This substantial commercial asset encompasses 22.79 acres of prime retail real estate in Broward County.",
+      "location_overview": "The subject property is strategically positioned within Broward County, Florida, one of the most dynamic and economically robust markets in the southeastern United States.",
+      "market_overview": "The Plantation retail market operates within a robust economic environment supported by strong regional fundamentals in Broward County.",
+      "sponsor_narrative": "Charles B. Ladd Jr. brings over 35 years of experience in South Florida real estate development. Steven W. Hudson stands as one of South Florida's most accomplished real estate developers. The combined net worth of the guarantors is $239.65 million with substantial liquidity.",
+      "risks_mitigants_narrative": "Based on the analysis, this transaction presents acceptable risk levels for Fairbridge. The strong sponsor financials and property fundamentals support the loan request.",
+      "zoning_narrative": "The subject property is currently zoned B-2P (Business District with Planned Development overlay) within the City of Plantation, Broward County, Florida.",
+      "foreclosure_assumptions": "Florida operates under a judicial foreclosure system. We estimate a 12-18 month timeline from initial default to final judgment."
+    }
+  }
+]
