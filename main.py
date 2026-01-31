@@ -647,6 +647,7 @@ class DealInputToSchemaMapper:
         self._deal_facts = deal.get("deal_facts") or {}
         self._loan_terms = deal.get("loan_terms") or {}
         self._leverage = deal.get("leverage") or {}
+        self._closing_disbursement = deal.get("closing_disbursement") or {}
         self._sponsor = deal.get("sponsor") or {}
         self._sources_uses = deal.get("sources_and_uses") or {}
         self._valuation = deal.get("valuation") or {}
@@ -656,6 +657,56 @@ class DealInputToSchemaMapper:
         self._due_diligence = deal.get("due_diligence") or {}
         self._environmental = deal.get("environmental") or {}
         self._zoning = deal.get("zoning") or {}
+        self._normalize_from_layer3_shape()
+
+    def _normalize_from_layer3_shape(self) -> None:
+        """If flat keys are empty, try Layer 3 alternate structure (deal_memo_ready, extracted_data, etc.)."""
+        deal = self.deal
+        memo = deal.get("deal_memo_ready") or {}
+        extracted = deal.get("extracted_data") or {}
+        if not self._deal_facts:
+            self._deal_facts = memo.get("deal_facts_table") or {}
+        if not self._leverage:
+            self._leverage = memo.get("leverage_ratios_table") or deal.get("calculations", {}).get("leverage_ratios") or {}
+        if not self._loan_terms:
+            lt = extracted.get("loan_terms") or {}
+            self._loan_terms = lt.get("data") if isinstance(lt.get("data"), dict) else (lt or {})
+        if not self._closing_disbursement:
+            self._closing_disbursement = memo.get("closing_disbursement") or deal.get("closing_disbursement") or {}
+        if not self._cover and (deal.get("deal_identification") or memo):
+            di = deal.get("deal_identification") or {}
+            self._cover = {
+                "property_address": di.get("property_address", ""),
+                "credit_committee": di.get("sponsor_names") or di.get("credit_committee", ""),
+                "underwriting_team": di.get("underwriting_team", ""),
+                "date": di.get("date", "") or (memo.get("memo_date") if isinstance(memo.get("memo_date"), str) else ""),
+            }
+        if not self._property and memo:
+            ps = memo.get("property_summary") or {}
+            if isinstance(ps, dict):
+                self._property = {
+                    "name": ps.get("property_name") or ps.get("project_name", ""),
+                    "address": {"street": ps.get("address", ""), "city": ps.get("city", ""), "state": ps.get("state", ""), "zip": ps.get("zip", "")},
+                    "property_type": ps.get("property_type", ""),
+                    "building_sf": ps.get("gla") or ps.get("gross_leasable_area_sf"),
+                    "land_area_acres": ps.get("site_size_acres") or ps.get("land_area_acres"),
+                    "year_built": ps.get("year_built"),
+                    "occupancy_current": ps.get("occupancy"),
+                }
+        placeholders = memo.get("narrative_placeholders") or {}
+        if not self._narratives and placeholders:
+            self._narratives = {
+                "property_overview": placeholders.get("property_description") or placeholders.get("property_overview", ""),
+                "location_overview": placeholders.get("location_overview", ""),
+                "market_overview": placeholders.get("market_overview", ""),
+                "transaction_overview": placeholders.get("deal_summary", ""),
+                "sponsor_narrative": placeholders.get("sponsor_summary", ""),
+                "closing_funding_narrative": placeholders.get("closing_funding_narrative", ""),
+            }
+        elif self._narratives and placeholders:
+            # Fill in missing narrative keys from Layer 3 narrative_placeholders
+            if not (self._narratives.get("property_overview") or "").strip() or (self._narratives.get("property_overview") or "").strip() == "None":
+                self._narratives["property_overview"] = placeholders.get("property_description") or placeholders.get("property_overview", "") or ""
 
     def _fmt_currency(self, val: Any) -> str:
         if val is None:
@@ -723,11 +774,12 @@ class DealInputToSchemaMapper:
             {"label": "Prepayment", "value": self._str_or_empty(self._loan_terms.get("prepayment")) or "N/A"},
             {"label": "Guaranty", "value": self._str_or_empty(self._loan_terms.get("guaranty")) or "N/A"},
         ]
+        lev = self._leverage
         leverage_list = [
-            {"label": "LTC at Closing", "value": self._str_or_empty(self._leverage.get("fb_ltc_at_closing")) or "N/A"},
-            {"label": "LTV at Closing", "value": self._str_or_empty(self._leverage.get("ltv_at_closing")) or "N/A"},
-            {"label": "LTV at Maturity", "value": self._str_or_empty(self._leverage.get("ltv_at_maturity")) or "N/A"},
-            {"label": "Debt Yield", "value": self._str_or_empty(self._leverage.get("debt_yield_fully_drawn")) or "N/A"},
+            {"label": "LTC at Closing", "value": self._str_or_empty(lev.get("fb_ltc_at_closing") or lev.get("ltc_at_closing")) or "N/A"},
+            {"label": "LTV at Closing", "value": self._str_or_empty(lev.get("ltv_at_closing")) or "N/A"},
+            {"label": "LTV at Maturity", "value": self._str_or_empty(lev.get("ltv_at_maturity")) or "N/A"},
+            {"label": "Debt Yield", "value": self._str_or_empty(lev.get("debt_yield_fully_drawn") or lev.get("debt_yield")) or "N/A"},
         ]
         return {
             "deal_facts": deal_facts,
@@ -787,6 +839,8 @@ class DealInputToSchemaMapper:
         if not isinstance(addr, dict):
             addr = {}
         narrative = self._narratives.get("property_overview") or ""
+        if narrative is None or (isinstance(narrative, str) and narrative.strip() == "None"):
+            narrative = ""
         if not narrative:
             narrative = f"{self._property.get('name') or 'The property'} is located at {addr.get('street', '')}, {addr.get('city', '')}, {addr.get('state', '')}. {self._property.get('building_sf') or 'N/A'} SF, {self._property.get('land_area_acres') or 'N/A'} acres."
         yb = self._property.get("year_built")
@@ -807,7 +861,10 @@ class DealInputToSchemaMapper:
             {"label": "Stabilized Occupancy", "value": f"{self._property.get('occupancy_stabilized', 'N/A')}%" if self._property.get("occupancy_stabilized") is not None else "N/A"},
             {"label": "Anchor Tenants", "value": self._property.get("anchor_tenants", "N/A")},
         ]
-        return {"description_narrative": (narrative or "")[:5000] if isinstance(narrative, str) else str(narrative or "")[:5000], "metrics": metrics}
+        desc = (narrative or "")[:5000] if isinstance(narrative, str) else str(narrative or "")[:5000]
+        if desc == "None":
+            desc = ""
+        return {"description_narrative": desc, "metrics": metrics}
 
     def _build_location(self) -> Dict[str, Any]:
         narrative = self._narratives.get("location_overview") or ""
@@ -980,7 +1037,7 @@ class DealInputToSchemaMapper:
 
     def _build_disbursement_rows(self) -> List[Dict[str, str]]:
         """Build list of {label, value} from closing_disbursement for table rendering."""
-        cd = self.deal.get("closing_disbursement") or {}
+        cd = self._closing_disbursement or {}
         if not isinstance(cd, dict):
             return []
         labels = [
@@ -1000,6 +1057,12 @@ class DealInputToSchemaMapper:
 
     def transform(self) -> Dict[str, Any]:
         """Transform deal input to template schema format."""
+        print("=== Layer 3 Input Debug ===")
+        print("deal_facts:", self._deal_facts)
+        print("leverage:", self._leverage)
+        print("loan_terms keys:", list(self._loan_terms.keys()) if isinstance(self._loan_terms, dict) else self._loan_terms)
+        print("closing_disbursement:", self._closing_disbursement)
+        print("narratives keys:", list(self._narratives.keys()) if isinstance(self._narratives, dict) else self._narratives)
         out = {
             "cover": self._build_cover(),
             "toc": "{{TOC}}",
@@ -1038,7 +1101,7 @@ class DealInputToSchemaMapper:
         out["capital_stack_uses"] = cap_uses
         out["capital_stack"] = {"title": cap_title, "sources": cap_sources, "uses": cap_uses}
 
-        cd = self.deal.get("closing_disbursement") or {}
+        cd = self._closing_disbursement or {}
         if not isinstance(cd, dict):
             cd = {}
         # Disbursement table: iterable rows + normalized dict (no None -> template shows "" not "None")
@@ -1080,11 +1143,11 @@ class DealInputToSchemaMapper:
         if "items" not in out["deal_highlights"]:
             out["deal_highlights"]["items"] = []
         narrative = self._narratives.get("closing_funding_narrative") or ""
-        out["closing_funding_and_reserves"] = {k: self._str_or_empty(v) for k, v in cd.items()}
+        out["closing_funding_and_reserves"] = {k: self._str_or_empty(v) for k, v in (self._closing_disbursement or {}).items()}
         if narrative:
             out["closing_funding_and_reserves"]["narrative"] = narrative
         lev = self._leverage
-        out["LTC"] = lev.get("fb_ltc_at_closing") or lev.get("ltc_at_maturity") or "N/A"
+        out["LTC"] = lev.get("fb_ltc_at_closing") or lev.get("ltc_at_closing") or lev.get("ltc_at_maturity") or "N/A"
         out["LTV"] = lev.get("ltv_at_closing") or lev.get("ltv_at_maturity") or "N/A"
         out["property_value"] = self._valuation if self._valuation else {}
         exit_narr = self._narratives.get("exit_strategy") or ""
