@@ -1362,6 +1362,14 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
             for k, v in flat[raw_key].items():
                 if k not in flat:
                     flat[k] = v
+    # CRITICAL: Template uses {{ deal_facts.property_type }}, {{ leverage.fb_ltc_at_closing }}, {{ closing_disbursement.payoff_existing_debt }}, etc.
+    # These need to be DICTS, not arrays. Override with raw versions so direct property access works.
+    if "deal_facts_raw" in flat:
+        flat["deal_facts"] = flat["deal_facts_raw"]
+    if "leverage_raw" in flat:
+        flat["leverage"] = flat["leverage_raw"]
+    if "loan_terms_raw" in flat:
+        flat["loan_terms"] = flat["loan_terms_raw"]
     return flat
 
 
