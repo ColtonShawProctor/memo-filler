@@ -699,7 +699,10 @@ class DealInputToSchemaMapper:
         }
 
     def _build_transaction_overview(self) -> Dict[str, Any]:
-        ir = (self._loan_terms.get("interest_rate") or {})
+        ir_raw = self._loan_terms.get("interest_rate")
+        ir = ir_raw if isinstance(ir_raw, dict) else {}
+        if isinstance(ir_raw, str):
+            ir = {"description": ir_raw, "default_rate": ""}
         deal_facts = [
             {"label": "Property Type", "value": self._deal_facts.get("property_type", "N/A")},
             {"label": "Property Name", "value": self._property.get("name", "N/A")},
@@ -731,7 +734,7 @@ class DealInputToSchemaMapper:
         if not narrative:
             narrative = f"Bridge loan request for {self._property.get('name', 'the property')}. See narratives for full overview."
         items = (self._highlights.get("items") or [])[:6]
-        key_highlights = [h.get("highlight", "") or h.get("description", "") for h in items if h]
+        key_highlights = [h.get("highlight", "") or h.get("description", "") for h in items if isinstance(h, dict)]
         return {
             "narrative": narrative[:4000] if isinstance(narrative, str) else str(narrative)[:4000],
             "key_highlights": key_highlights or ["See deal highlights."],
@@ -741,8 +744,12 @@ class DealInputToSchemaMapper:
 
     def _build_sources_and_uses(self) -> Dict[str, Any]:
         table = self._sources_uses.get("table") or {}
+        if not isinstance(table, dict):
+            table = {}
         sources = []
         for item in (table.get("sources") or []):
+            if not isinstance(item, dict):
+                continue
             sources.append({
                 "label": item.get("item", "Source"),
                 "amount": self._fmt_currency(item.get("amount")),
@@ -750,7 +757,11 @@ class DealInputToSchemaMapper:
             })
         uses = []
         for cat in (table.get("uses") or []):
+            if not isinstance(cat, dict):
+                continue
             for item in (cat.get("items") or []):
+                if not isinstance(item, dict):
+                    continue
                 uses.append({
                     "label": item.get("item", "Use"),
                     "amount": self._fmt_currency(item.get("amount")),
@@ -765,6 +776,8 @@ class DealInputToSchemaMapper:
 
     def _build_property(self) -> Dict[str, Any]:
         addr = self._property.get("address") or {}
+        if not isinstance(addr, dict):
+            addr = {}
         narrative = self._narratives.get("property_overview", "")
         if not narrative:
             narrative = f"{self._property.get('name', 'The property')} is located at {addr.get('street', '')}, {addr.get('city', '')}, {addr.get('state', '')}. {self._property.get('building_sf', 'N/A')} SF, {self._property.get('land_area_acres', 'N/A')} acres."
@@ -772,11 +785,13 @@ class DealInputToSchemaMapper:
         year_built_str = str(yb) if yb is not None else "N/A"
         if isinstance(yb, list):
             year_built_str = ", ".join(str(x) for x in yb)
+        bsf = self._property.get("building_sf")
+        bsf_str = f"{bsf:,} SF" if isinstance(bsf, (int, float)) else str(bsf) if bsf is not None else "N/A"
         metrics = [
             {"label": "Property Name", "value": self._property.get("name", "N/A")},
             {"label": "Property Type", "value": self._property.get("property_type", "N/A")},
             {"label": "Land Area", "value": f"{self._property.get('land_area_acres', 'N/A')} acres"},
-            {"label": "Building SF", "value": f"{self._property.get('building_sf', 'N/A'):,} SF" if isinstance(self._property.get("building_sf"), (int, float)) else str(self._property.get("building_sf", "N/A"))},
+            {"label": "Building SF", "value": bsf_str},
             {"label": "Year Built", "value": year_built_str},
             {"label": "Year Renovated", "value": str(self._property.get("year_renovated", "N/A"))},
             {"label": "Condition", "value": self._property.get("condition", "N/A")},
@@ -814,10 +829,14 @@ class DealInputToSchemaMapper:
             })
         if not sponsors and principals:
             for p in principals:
+                if not isinstance(p, dict):
+                    continue
                 name = p.get("name", "")
                 if not name:
                     continue
                 fp = p.get("financial_profile") or {}
+                if not isinstance(fp, dict):
+                    fp = {}
                 nw = fp.get("net_worth")
                 liq = fp.get("liquid_assets")
                 sponsors.append({"name": name, "total_assets": None, "net_worth": nw, "liquidity": liq, "cash": liq, "securities": None})
@@ -844,6 +863,8 @@ class DealInputToSchemaMapper:
         items = (self._risks.get("items") or [])
         risk_items = []
         for r in items:
+            if not isinstance(r, dict):
+                continue
             risk_items.append({
                 "category": r.get("risk", "Risk"),
                 "score": "Moderate",
@@ -1191,12 +1212,27 @@ def _run_fill_from_deal(
     print(f"Sponsors captured: {sponsor_names}")
 
     # 1. Pull template from S3
-    template_bytes = download_template(template_key)
+    try:
+        template_bytes = download_template(template_key)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to pull template from S3 ({template_key}): {str(e)}")
     # 2. Fill template with schema (Layer 3 input mapped to template variables)
-    filled_bytes = fill_template(template_bytes, schema_data, images or {})
+    try:
+        filled_bytes = fill_template(template_bytes, schema_data, images or {})
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Template render failed: {str(e)}")
     # 3. Upload filled memo to S3
-    out_key = get_unique_output_key(output_key)
-    output_url = upload_to_s3(filled_bytes, out_key)
+    try:
+        out_key = get_unique_output_key(output_key)
+        output_url = upload_to_s3(filled_bytes, out_key)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to upload filled memo to S3: {str(e)}")
 
     return {
         "success": True,
@@ -1269,7 +1305,41 @@ async def fill_from_deal_endpoint(request: Request):
         safe_id = (deal_id or "deal").strip().replace(" ", "-")
         output_key = f"deals/{safe_id}/Investment_Memo.docx"
 
-    return _run_fill_from_deal(payload=payload, deal_index=deal_index, output_key=output_key, template_key=template_key, images=images)
+    try:
+        return _run_fill_from_deal(payload=payload, deal_index=deal_index, output_key=output_key, template_key=template_key, images=images)
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        print(f"fill-from-deal error: {e}\n{tb}")
+        raise HTTPException(status_code=500, detail=f"Memo fill failed: {str(e)}. Check server logs for traceback.")
+
+
+@app.post("/transform-deal-to-schema")
+async def transform_deal_to_schema_endpoint(request: Request):
+    """
+    Debug: Map Layer 3 deal JSON to template schema only (no S3, no fill).
+    Body: single deal object or array with one deal. Returns the schema that would be passed to the template.
+    Use this to verify your input JSON is accepted and see the mapped output.
+    """
+    try:
+        body = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Request body must be valid JSON: {str(e)}")
+    if isinstance(body, list) and len(body) > 0:
+        deal = body[0]
+    elif isinstance(body, dict) and body.get("deal_id") is not None:
+        deal = body
+    else:
+        raise HTTPException(status_code=422, detail="Body must be a single deal object or array with one deal (with deal_id).")
+    try:
+        mapper = DealInputToSchemaMapper(deal)
+        schema_data = mapper.transform()
+        return schema_data
+    except Exception as e:
+        import traceback
+        raise HTTPException(status_code=400, detail=f"Transform failed: {str(e)}\n{traceback.format_exc()}")
 
 
 @app.post("/transform-layer2")
