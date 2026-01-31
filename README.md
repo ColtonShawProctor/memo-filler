@@ -48,15 +48,21 @@ The input is an **array of deal objects** (`DealInput[]`). Each element has this
 
 ### Filling a memo from the new format
 
-The Memo Filler service accepts the new format via **`POST /fill-from-deal`**:
+Use **`POST /fill-from-deal`** (not `/fill` or `/fill-and-upload`, which expect a `data` field).
 
-- **Request body**: `{ "payload": [ { deal_id, deal_folder, cover, deal_facts, loan_terms, sponsor, narratives, ... } ], "deal_index": 0, "output_key": "path/to/output.docx", "images": {} }`
-- **payload**: Array of deal objects (your full JSON in this format).
-- **deal_index**: Which deal in the array to use (default `0`).
-- **output_key**: S3 key where the filled memo will be uploaded.
-- **images**: Optional `{ image_key: base64 }` for template images.
+**Option A – Raw deal body (e.g. n8n sending the deal as body)**  
+- **URL**: `POST /fill-from-deal?output_key=path/to/memo.docx`  
+- **Body**: The single deal object (e.g. `{ deal_id, deal_folder, cover, deal_facts, loan_terms, sponsor, narratives, ... }`).  
+- **Query**: `output_key` is **required** when the body is a raw deal.
 
-The service maps the deal object to the Word template schema, fills the template, and uploads the result to S3. It returns `success`, `output_key`, `output_url`, `deal_id`, `sponsors_found`, and `sponsor_names`.
+**Option B – Wrapped body**  
+- **Body**: `{ "payload": [ { deal_id, deal_folder, cover, ... } ], "output_key": "path/to/output.docx", "deal_index": 0, "images": {}, "template_key": "..." }`  
+- **payload**: Array of deal objects.  
+- **output_key**: S3 key for the filled memo.  
+- **deal_index**: Which deal in the array to use (default `0`).  
+- **images**: Optional `{ image_key: base64 }`.
+
+The service maps the deal to the Word template schema, fills the template, and uploads to S3. It returns `success`, `output_key`, `output_url`, `deal_id`, `sponsors_found`, `sponsor_names`, etc.
 
 ### Other consumers
 

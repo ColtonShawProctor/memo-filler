@@ -16,7 +16,7 @@ from io import BytesIO
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import boto3
@@ -1160,29 +1160,19 @@ async def fill_from_layer2_endpoint(request: FillFromLayer2Request):
     }
 
 
-@app.post("/fill-from-deal")
-async def fill_from_deal_endpoint(request: FillFromDealRequest):
-    """
-    Fill memo from the deal memo input format (DealInputPayload).
-
-    Request body:
-    - payload: Array of deal objects (e.g. [{ deal_id, deal_folder, cover, deal_facts, loan_terms, sponsor, narratives, ... }])
-    - deal_index: Index of the deal to use (default 0)
-    - images: Optional dict of image_key -> base64
-    - template_key: S3 key for template (default v2_0)
-    - output_key: S3 key for output file
-
-    Returns:
-    - success: bool
-    - output_key: Actual S3 key used
-    - output_url: Full URL of the uploaded file
-    - deal_id: deal_id of the deal used
-    """
-    if not request.payload:
+def _run_fill_from_deal(
+    payload: List[Dict[str, Any]],
+    deal_index: int,
+    output_key: str,
+    template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx",
+    images: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
+    """Shared logic for fill-from-deal: map deal to schema, fill template, upload to S3."""
+    if not payload:
         raise HTTPException(status_code=400, detail="payload must be a non-empty array of deal objects")
-    if request.deal_index < 0 or request.deal_index >= len(request.payload):
-        raise HTTPException(status_code=400, detail=f"deal_index must be between 0 and {len(request.payload) - 1}")
-    deal = request.payload[request.deal_index]
+    if deal_index < 0 or deal_index >= len(payload):
+        raise HTTPException(status_code=400, detail=f"deal_index must be between 0 and {len(payload) - 1}")
+    deal = payload[deal_index]
     deal_id = deal.get("deal_id", "")
     deal_folder = deal.get("deal_folder", "")
     print(f"Processing deal input: deal_id={deal_id}, deal_folder={deal_folder}")
@@ -1194,22 +1184,81 @@ async def fill_from_deal_endpoint(request: FillFromDealRequest):
     sponsor_names = [s.get("name", "") for s in sponsors]
     print(f"Sponsors captured: {sponsor_names}")
 
-    template_bytes = download_template(request.template_key)
-    filled_bytes = fill_template(template_bytes, schema_data, request.images)
-    output_key = get_unique_output_key(request.output_key)
-    output_url = upload_to_s3(filled_bytes, output_key)
+    template_bytes = download_template(template_key)
+    filled_bytes = fill_template(template_bytes, schema_data, images or {})
+    out_key = get_unique_output_key(output_key)
+    output_url = upload_to_s3(filled_bytes, out_key)
 
     return {
         "success": True,
-        "output_key": output_key,
+        "output_key": out_key,
         "output_url": output_url,
-        "original_key": request.output_key,
+        "original_key": output_key,
         "deal_id": deal_id,
         "deal_folder": deal_folder,
         "sponsors_found": len(sponsors),
         "sponsor_names": sponsor_names,
-        "template_used": request.template_key,
+        "template_used": template_key,
     }
+
+
+@app.post("/fill-from-deal")
+async def fill_from_deal_endpoint(request: Request):
+    """
+    Fill memo from the deal memo input format.
+
+    Accepts two body shapes so n8n or other callers can send either format:
+
+    1) Wrapped (recommended):
+       { "payload": [ { deal_id, deal_folder, cover, deal_facts, ... } ], "output_key": "path/to.docx", "deal_index": 0, "images": {}, "template_key": "..." }
+
+    2) Raw deal (body = single deal object):
+       Body is the deal object directly. Pass output_key as query param: ?output_key=path/to.docx
+
+    Returns: success, output_key, output_url, deal_id, deal_folder, sponsors_found, sponsor_names, template_used
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Request body must be valid JSON")
+
+    payload = None
+    deal_index = 0
+    output_key = None
+    template_key = "_Templates/Fairbridge_Memo_Template_v2_0.docx"
+    images = {}
+
+    if isinstance(body, dict) and "payload" in body and isinstance(body.get("payload"), list):
+        # Wrapped format
+        payload = body["payload"]
+        deal_index = int(body.get("deal_index", 0))
+        output_key = body.get("output_key")
+        template_key = body.get("template_key", template_key)
+        images = body.get("images") or {}
+    elif isinstance(body, dict) and body.get("deal_id") and body.get("cover") is not None:
+        # Raw deal: body is the single deal object
+        payload = [body]
+        deal_index = 0
+        output_key = request.query_params.get("output_key")
+        template_key = request.query_params.get("template_key") or template_key
+    elif isinstance(body, list) and len(body) > 0 and isinstance(body[0], dict) and body[0].get("deal_id"):
+        # Body is array of deals (no wrapper)
+        payload = body
+        deal_index = 0
+        output_key = request.query_params.get("output_key")
+
+    if not payload:
+        raise HTTPException(
+            status_code=422,
+            detail="Body must be either (1) { \"payload\": [ deal, ... ], \"output_key\": \"...\" } or (2) a single deal object with query param output_key=..."
+        )
+    if not output_key:
+        raise HTTPException(
+            status_code=422,
+            detail="output_key is required: include in body when using payload wrapper, or as query param when sending raw deal (e.g. ?output_key=deals/memo.docx)"
+        )
+
+    return _run_fill_from_deal(payload=payload, deal_index=deal_index, output_key=output_key, template_key=template_key, images=images)
 
 
 @app.post("/transform-layer2")
