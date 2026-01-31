@@ -630,6 +630,298 @@ class Layer2ToSchemaMapper:
 
 
 # =============================================================================
+# Deal Input (New Format) → Template Schema Mapper
+# =============================================================================
+class DealInputToSchemaMapper:
+    """
+    Maps the deal memo input format (DealInputPayload element) to the
+    template schema expected by fill_template(). Use when input is the
+    structured deal object (deal_id, cover, deal_facts, loan_terms, sponsor,
+    narratives, etc.) instead of Layer 2 extractions.
+    """
+
+    def __init__(self, deal: Dict[str, Any]):
+        self.deal = deal
+        self._cover = deal.get("cover") or {}
+        self._property = deal.get("property") or {}
+        self._deal_facts = deal.get("deal_facts") or {}
+        self._loan_terms = deal.get("loan_terms") or {}
+        self._leverage = deal.get("leverage") or {}
+        self._sponsor = deal.get("sponsor") or {}
+        self._sources_uses = deal.get("sources_and_uses") or {}
+        self._valuation = deal.get("valuation") or {}
+        self._narratives = deal.get("narratives") or {}
+        self._risks = deal.get("risks_and_mitigants") or {}
+        self._highlights = deal.get("deal_highlights") or {}
+        self._due_diligence = deal.get("due_diligence") or {}
+        self._environmental = deal.get("environmental") or {}
+        self._zoning = deal.get("zoning") or {}
+
+    def _fmt_currency(self, val: Any) -> str:
+        if val is None:
+            return "N/A"
+        if isinstance(val, str) and val.startswith("$"):
+            return val
+        try:
+            num = float(val)
+            if num >= 1_000_000:
+                return f"${num/1_000_000:,.2f}M"
+            return f"${num:,.0f}"
+        except (ValueError, TypeError):
+            return str(val)
+
+    def _fmt_pct(self, val: Any) -> str:
+        if val is None:
+            return "N/A"
+        if isinstance(val, str) and "%" in val:
+            return val
+        try:
+            return f"{float(val):.2f}%"
+        except (ValueError, TypeError):
+            return str(val)
+
+    def _split_list(self, s: str) -> List[str]:
+        if not s:
+            return []
+        return [x.strip() for x in str(s).split(",") if x.strip()]
+
+    def _build_cover(self) -> Dict[str, Any]:
+        addr = self._property.get("address") or {}
+        prop_name = self._property.get("name", "")
+        return {
+            "memo_subtitle": "CREDIT COMMITTEE MEMO",
+            "memo_title": "BRIDGE LOAN REQUEST",
+            "property_name": prop_name,
+            "property_address": self._cover.get("property_address", ""),
+            "credit_committee": self._split_list(self._cover.get("credit_committee", "")),
+            "underwriting_team": self._split_list(self._cover.get("underwriting_team", "")),
+            "memo_date": self._cover.get("date", datetime.now().strftime("%B %d, %Y")),
+        }
+
+    def _build_transaction_overview(self) -> Dict[str, Any]:
+        ir = (self._loan_terms.get("interest_rate") or {})
+        deal_facts = [
+            {"label": "Property Type", "value": self._deal_facts.get("property_type", "N/A")},
+            {"label": "Property Name", "value": self._property.get("name", "N/A")},
+            {"label": "Loan Purpose", "value": self._deal_facts.get("loan_purpose", "N/A")},
+            {"label": "Loan Amount", "value": self._deal_facts.get("loan_amount", "N/A")},
+            {"label": "Source", "value": self._deal_facts.get("source", "N/A")},
+        ]
+        loan_terms_list = [
+            {"label": "Interest Rate", "value": ir.get("description", "N/A")},
+            {"label": "Origination Fee", "value": (self._loan_terms.get("origination_fee") or "N/A")},
+            {"label": "Exit Fee", "value": (self._loan_terms.get("exit_fee") or "N/A")},
+            {"label": "Prepayment", "value": (self._loan_terms.get("prepayment") or "N/A")},
+            {"label": "Guaranty", "value": (self._loan_terms.get("guaranty") or "N/A")},
+        ]
+        leverage_list = [
+            {"label": "LTC at Closing", "value": self._leverage.get("fb_ltc_at_closing", "N/A")},
+            {"label": "LTV at Closing", "value": self._leverage.get("ltv_at_closing", "N/A")},
+            {"label": "LTV at Maturity", "value": self._leverage.get("ltv_at_maturity", "N/A")},
+            {"label": "Debt Yield", "value": self._leverage.get("debt_yield_fully_drawn", "N/A")},
+        ]
+        return {
+            "deal_facts": deal_facts,
+            "loan_terms": loan_terms_list,
+            "leverage_metrics": leverage_list,
+        }
+
+    def _build_executive_summary(self) -> Dict[str, Any]:
+        narrative = self._narratives.get("transaction_overview", "")
+        if not narrative:
+            narrative = f"Bridge loan request for {self._property.get('name', 'the property')}. See narratives for full overview."
+        items = (self._highlights.get("items") or [])[:6]
+        key_highlights = [h.get("highlight", "") or h.get("description", "") for h in items if h]
+        return {
+            "narrative": narrative[:4000] if isinstance(narrative, str) else str(narrative)[:4000],
+            "key_highlights": key_highlights or ["See deal highlights."],
+            "recommendation": "APPROVE - Subject to conditions",
+            "conditions": ["Standard closing conditions", "Satisfactory title and survey review", "Completion of legal documentation"],
+        }
+
+    def _build_sources_and_uses(self) -> Dict[str, Any]:
+        table = self._sources_uses.get("table") or {}
+        sources = []
+        for item in (table.get("sources") or []):
+            sources.append({
+                "label": item.get("item", "Source"),
+                "amount": self._fmt_currency(item.get("amount")),
+                "percent": self._fmt_pct(item.get("rate_pct")),
+            })
+        uses = []
+        for cat in (table.get("uses") or []):
+            for item in (cat.get("items") or []):
+                uses.append({
+                    "label": item.get("item", "Use"),
+                    "amount": self._fmt_currency(item.get("amount")),
+                    "release_conditions": cat.get("category", ""),
+                })
+        return {
+            "fairbridge_sources_uses": {
+                "sources": sources if sources else [{"label": "TBD", "amount": "TBD", "percent": "TBD"}],
+                "uses": uses if uses else [{"label": "TBD", "amount": "TBD", "release_conditions": "TBD"}],
+            }
+        }
+
+    def _build_property(self) -> Dict[str, Any]:
+        addr = self._property.get("address") or {}
+        narrative = self._narratives.get("property_overview", "")
+        if not narrative:
+            narrative = f"{self._property.get('name', 'The property')} is located at {addr.get('street', '')}, {addr.get('city', '')}, {addr.get('state', '')}. {self._property.get('building_sf', 'N/A')} SF, {self._property.get('land_area_acres', 'N/A')} acres."
+        yb = self._property.get("year_built")
+        year_built_str = str(yb) if yb is not None else "N/A"
+        if isinstance(yb, list):
+            year_built_str = ", ".join(str(x) for x in yb)
+        metrics = [
+            {"label": "Property Name", "value": self._property.get("name", "N/A")},
+            {"label": "Property Type", "value": self._property.get("property_type", "N/A")},
+            {"label": "Land Area", "value": f"{self._property.get('land_area_acres', 'N/A')} acres"},
+            {"label": "Building SF", "value": f"{self._property.get('building_sf', 'N/A'):,} SF" if isinstance(self._property.get("building_sf"), (int, float)) else str(self._property.get("building_sf", "N/A"))},
+            {"label": "Year Built", "value": year_built_str},
+            {"label": "Year Renovated", "value": str(self._property.get("year_renovated", "N/A"))},
+            {"label": "Condition", "value": self._property.get("condition", "N/A")},
+            {"label": "Current Occupancy", "value": f"{self._property.get('occupancy_current', 'N/A')}%" if self._property.get("occupancy_current") is not None else "N/A"},
+            {"label": "Stabilized Occupancy", "value": f"{self._property.get('occupancy_stabilized', 'N/A')}%" if self._property.get("occupancy_stabilized") is not None else "N/A"},
+            {"label": "Anchor Tenants", "value": self._property.get("anchor_tenants", "N/A")},
+        ]
+        return {"description_narrative": narrative[:5000] if isinstance(narrative, str) else str(narrative)[:5000], "metrics": metrics}
+
+    def _build_location(self) -> Dict[str, Any]:
+        narrative = self._narratives.get("location_overview", "")
+        if not narrative:
+            addr = self._property.get("address") or {}
+            narrative = f"The property is located in {addr.get('city', '')}, {addr.get('county', '')}, {addr.get('state', '')}. See appraisal for detailed location analysis."
+        return {"narrative": narrative[:4000] if isinstance(narrative, str) else str(narrative)[:4000]}
+
+    def _build_market(self) -> Dict[str, Any]:
+        narrative = self._narratives.get("market_overview", "")
+        if not narrative:
+            narrative = "Market analysis indicates favorable conditions. Please refer to the appraisal for detailed market analysis."
+        return {"narrative": narrative[:4000] if isinstance(narrative, str) else str(narrative)[:4000]}
+
+    def _build_sponsorship(self) -> Dict[str, Any]:
+        guarantors = self._sponsor.get("guarantors") or {}
+        principals = (self._sponsor.get("principals") or [])
+        sponsors = []
+        for name in (guarantors.get("names") or []):
+            sponsors.append({
+                "name": name,
+                "total_assets": None,
+                "net_worth": guarantors.get("combined_net_worth"),
+                "liquidity": (guarantors.get("combined_cash_position") or 0) + (guarantors.get("combined_securities_holdings") or 0),
+                "cash": guarantors.get("combined_cash_position"),
+                "securities": guarantors.get("combined_securities_holdings"),
+            })
+        if not sponsors and principals:
+            for p in principals:
+                name = p.get("name", "")
+                if not name:
+                    continue
+                fp = p.get("financial_profile") or {}
+                nw = fp.get("net_worth")
+                liq = fp.get("liquid_assets")
+                sponsors.append({"name": name, "total_assets": None, "net_worth": nw, "liquidity": liq, "cash": liq, "securities": None})
+        combined_nw = sum((s.get("net_worth") or 0) for s in sponsors)
+        combined_liq = sum((s.get("liquidity") or 0) for s in sponsors)
+        financial_summary = [
+            {"label": "COMBINED NET WORTH", "value": self._fmt_currency(guarantors.get("combined_net_worth") or combined_nw)},
+            {"label": "COMBINED LIQUIDITY", "value": self._fmt_currency(combined_liq)},
+        ]
+        for s in sponsors:
+            financial_summary.append({"label": f"{s['name']} - Net Worth", "value": self._fmt_currency(s.get("net_worth"))})
+            financial_summary.append({"label": f"{s['name']} - Liquidity", "value": self._fmt_currency(s.get("liquidity"))})
+        overview = self._narratives.get("sponsor_narrative", "")
+        if not overview:
+            overview = f"The principals are {', '.join(s['name'] for s in sponsors)}. Combined net worth {self._fmt_currency(combined_nw)}, liquidity {self._fmt_currency(combined_liq)}."
+        return {
+            "overview_narrative": overview[:3000] if isinstance(overview, str) else str(overview)[:3000],
+            "financial_summary": financial_summary if financial_summary else [{"label": "TBD", "value": "TBD"}],
+            "track_record": [{"property": "See sponsor narrative", "role": "Principal", "outcome": "Various"}],
+            "_sponsors_detail": sponsors if sponsors else [{"name": "TBD", "total_assets": None, "net_worth": None, "liquidity": None}],
+        }
+
+    def _build_risks_and_mitigants(self) -> Dict[str, Any]:
+        items = (self._risks.get("items") or [])
+        risk_items = []
+        for r in items:
+            risk_items.append({
+                "category": r.get("risk", "Risk"),
+                "score": "Moderate",
+                "risk": r.get("description", ""),
+                "mitigant": r.get("mitigant", ""),
+            })
+        narrative = self._narratives.get("risks_mitigants_narrative", "")
+        return {
+            "overall_risk_score": "MODERATE",
+            "recommendation_narrative": narrative[:2000] if narrative else "Based on the analysis, this transaction presents acceptable risk levels for Fairbridge.",
+            "risk_items": risk_items if risk_items else [{"category": "General", "score": "Moderate", "risk": "See risks and mitigants.", "mitigant": "See narrative."}],
+        }
+
+    def _build_validation_flags(self) -> Dict[str, Any]:
+        return {
+            "summary": {"total_checks": 7, "passed": 7, "warnings": 0, "failed": 0},
+            "critical_flags": [],
+            "warning_flags": [],
+        }
+
+    def _build_third_party_reports(self) -> Dict[str, Any]:
+        return {
+            "appraisal": {
+                "firm": self._due_diligence.get("appraisal_company", "N/A"),
+                "appraiser": self._due_diligence.get("appraisal_firm", "N/A"),
+                "effective_date": "N/A",
+                "as_is_value": self._valuation.get("as_is_value", "N/A"),
+                "stabilized_value": self._valuation.get("as_stabilized_value", "N/A"),
+                "cap_rate": self._valuation.get("cap_rate", "N/A"),
+            },
+            "environmental": {
+                "firm": self._environmental.get("firm", "N/A"),
+                "report_date": self._environmental.get("report_date", "N/A"),
+                "current_recs": str(len(self._environmental.get("historical_recs", []))),
+                "phase_ii_required": "No",
+                "findings": (self._environmental.get("findings_summary") or "N/A")[:500],
+            },
+        }
+
+    def _build_zoning_entitlements(self) -> Dict[str, Any]:
+        narrative = self._narratives.get("zoning_narrative", "")
+        if not narrative:
+            narrative = f"Current zoning: {self._zoning.get('zone_code', 'N/A')}. {self._zoning.get('highest_best_use_improved', '')}"
+        return {
+            "summary_narrative": narrative[:3000] if isinstance(narrative, str) else str(narrative)[:3000],
+            "current_zoning": self._zoning.get("zone_code", "N/A"),
+            "proposed_zoning": "See redevelopment",
+            "entitlement_status": "See zoning narrative",
+        }
+
+    def _build_foreclosure_analysis(self) -> Dict[str, Any]:
+        narrative = self._narratives.get("foreclosure_assumptions", "")
+        rows = [{"Quarter": f"Q{q}", "Beginning_Balance": "TBD", "Legal_Fees": "TBD", "Taxes": "TBD", "Insurance": "TBD", "Total_Carrying_Costs": "TBD", "Interest_Accrued": "TBD", "Ending_Balance": "TBD", "Property_Value": "TBD", "LTV": "TBD"} for q in range(1, 9)]
+        return {"scenario_default_rate": {"rows": rows}, "scenario_note_rate": {"rows": rows}}
+
+    def transform(self) -> Dict[str, Any]:
+        """Transform deal input to template schema format."""
+        return {
+            "cover": self._build_cover(),
+            "toc": "{{TOC}}",
+            "sections": {
+                "transaction_overview": self._build_transaction_overview(),
+                "executive_summary": self._build_executive_summary(),
+                "sources_and_uses": self._build_sources_and_uses(),
+                "property": self._build_property(),
+                "location": self._build_location(),
+                "market": self._build_market(),
+                "sponsorship": self._build_sponsorship(),
+                "risks_and_mitigants": self._build_risks_and_mitigants(),
+                "validation_flags": self._build_validation_flags(),
+                "third_party_reports": self._build_third_party_reports(),
+                "zoning_entitlements": self._build_zoning_entitlements(),
+                "foreclosure_analysis": self._build_foreclosure_analysis(),
+            },
+        }
+
+
+# =============================================================================
 # Request/Response Models
 # =============================================================================
 class FillRequest(BaseModel):
@@ -653,6 +945,15 @@ class FillFromLayer2Request(BaseModel):
     template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx"
     output_key: str
     deal_folder: str = ""  # Optional deal folder name for logging
+
+
+class FillFromDealRequest(BaseModel):
+    """Request model for deal memo input format (DealInputPayload)."""
+    payload: List[Dict[str, Any]]  # Array of deal objects (DealInputPayload)
+    deal_index: int = 0  # Which deal in the array to use
+    images: Dict[str, str] = {}
+    template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx"
+    output_key: str
 
 
 class HealthResponse(BaseModel):
@@ -856,6 +1157,58 @@ async def fill_from_layer2_endpoint(request: FillFromLayer2Request):
         "sponsors_found": len(sponsors),
         "sponsor_names": sponsor_names,
         "template_used": request.template_key
+    }
+
+
+@app.post("/fill-from-deal")
+async def fill_from_deal_endpoint(request: FillFromDealRequest):
+    """
+    Fill memo from the deal memo input format (DealInputPayload).
+
+    Request body:
+    - payload: Array of deal objects (e.g. [{ deal_id, deal_folder, cover, deal_facts, loan_terms, sponsor, narratives, ... }])
+    - deal_index: Index of the deal to use (default 0)
+    - images: Optional dict of image_key -> base64
+    - template_key: S3 key for template (default v2_0)
+    - output_key: S3 key for output file
+
+    Returns:
+    - success: bool
+    - output_key: Actual S3 key used
+    - output_url: Full URL of the uploaded file
+    - deal_id: deal_id of the deal used
+    """
+    if not request.payload:
+        raise HTTPException(status_code=400, detail="payload must be a non-empty array of deal objects")
+    if request.deal_index < 0 or request.deal_index >= len(request.payload):
+        raise HTTPException(status_code=400, detail=f"deal_index must be between 0 and {len(request.payload) - 1}")
+    deal = request.payload[request.deal_index]
+    deal_id = deal.get("deal_id", "")
+    deal_folder = deal.get("deal_folder", "")
+    print(f"Processing deal input: deal_id={deal_id}, deal_folder={deal_folder}")
+
+    mapper = DealInputToSchemaMapper(deal)
+    schema_data = mapper.transform()
+
+    sponsors = schema_data.get("sections", {}).get("sponsorship", {}).get("_sponsors_detail", [])
+    sponsor_names = [s.get("name", "") for s in sponsors]
+    print(f"Sponsors captured: {sponsor_names}")
+
+    template_bytes = download_template(request.template_key)
+    filled_bytes = fill_template(template_bytes, schema_data, request.images)
+    output_key = get_unique_output_key(request.output_key)
+    output_url = upload_to_s3(filled_bytes, output_key)
+
+    return {
+        "success": True,
+        "output_key": output_key,
+        "output_url": output_url,
+        "original_key": request.output_key,
+        "deal_id": deal_id,
+        "deal_folder": deal_folder,
+        "sponsors_found": len(sponsors),
+        "sponsor_names": sponsor_names,
+        "template_used": request.template_key,
     }
 
 

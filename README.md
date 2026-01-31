@@ -1,221 +1,65 @@
-# Memo Filler Service
+# Memo Filler
 
-Fairbridge Deal Memo Generator - FastAPI service that fills Word templates using Jinja2/docxtpl engine.
+Consumes the **deal memo input format** and supports filling or generating memo content from structured deal data.
 
-## Overview
+## Input format
 
-This service fills Word document templates with complex data structures including:
-- Nested data paths (`sections.property.description_narrative`)
-- Loops (`{% for row in rows %}...{% endfor %}`)
-- Conditionals (`{% if enabled %}...{% endif %}`)
-- Inline images with auto-scaling
+The input is an **array of deal objects** (`DealInput[]`). Each element has this shape:
 
-## Quick Start
+| Top-level key | Description |
+|---------------|-------------|
+| `deal_id` | Slug identifier (e.g. `"broward-blvd"`) |
+| `deal_folder` | Human-readable deal folder name |
+| `generated_at` | ISO 8601 timestamp |
+| `cover` | Cover page: property_address, credit_committee, underwriting_team, date |
+| `deal_facts` | Property type, loan purpose, loan amount, source |
+| `loan_terms` | Interest rate (description, default_rate), origination_fee, exit_fee, prepayment, guaranty, collateral |
+| `leverage` | LTC/LTV and debt yield metrics |
+| `sponsor` | Table (entity, profit %, membership, capital), borrowing_entity, guarantors, principals |
+| `sources_and_uses` | Table (sources, uses, totals, notes) and equity fields |
+| `closing_disbursement` | Payoff, fees, reserves, totals |
+| `capital_stack` | Table (sources, uses, totals, notes) |
+| `due_diligence` | Counsel, appraisal, PCA, environmental, site visit |
+| `property` | Name, address, type, GLA, occupancy, anchors, parking, condition, parcels |
+| `valuation` | As-is/stabilized value, cap/discount rates, NOI, valuation_approaches, market_value_conclusions |
+| `zoning` | Zone code, permitted uses, Live Local Act, highest & best use |
+| `redevelopment` | Description, proposed units, demolition, land area, cost |
+| `environmental` | Firm, report date, findings, historical RECs, assessment standard |
+| `rent_roll` | Occupancy rate, monthly/annual rent (often empty) |
+| `active_litigation` | exists, cases (complaint, sponsor explanation, counsel analysis, holdback) |
+| `comps` | sales_comps array |
+| `construction_budget` | total_budget, hard_costs, soft_costs |
+| `risks_and_mitigants` | items (risk, description, mitigant, sub_risks) |
+| `deal_highlights` | items (highlight, description) |
+| `collaborative_ventures` | Object (often empty) |
+| `loan_issues` | income_producing, development |
+| `narratives` | Long-form text: transaction_overview, loan_terms_narrative, property_overview, etc. |
 
-### Local Development
+## Types
 
-```bash
-# Install dependencies
-pip install -r requirements.txt
+- **TypeScript**: `types/deal-input.ts` exports `DealInput`, `DealInputPayload`, and all nested interfaces.
+- Use `DealInputPayload` for the root (array of deals).
 
-# Set environment variables
-export S3_ACCESS_KEY="your-access-key"
-export S3_SECRET_KEY="your-secret-key"
+## Sample
 
-# Run server
-python main.py
-# or
-uvicorn main:app --reload --port 8000
-```
+- `sample-input/` contains an example payload in this format (one deal, e.g. Broward Blvd).
 
-### Docker Deployment (Coolify)
+## Usage
 
-```bash
-# Build
-docker build -t memo-filler .
+### Filling a memo from the new format
 
-# Run
-docker run -p 8000:8000 \
-  -e S3_ACCESS_KEY="your-key" \
-  -e S3_SECRET_KEY="your-secret" \
-  memo-filler
-```
+The Memo Filler service accepts the new format via **`POST /fill-from-deal`**:
 
-## Environment Variables
+- **Request body**: `{ "payload": [ { deal_id, deal_folder, cover, deal_facts, loan_terms, sponsor, narratives, ... } ], "deal_index": 0, "output_key": "path/to/output.docx", "images": {} }`
+- **payload**: Array of deal objects (your full JSON in this format).
+- **deal_index**: Which deal in the array to use (default `0`).
+- **output_key**: S3 key where the filled memo will be uploaded.
+- **images**: Optional `{ image_key: base64 }` for template images.
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `S3_ACCESS_KEY` | DigitalOcean Spaces access key | Yes |
-| `S3_SECRET_KEY` | DigitalOcean Spaces secret key | Yes |
+The service maps the deal object to the Word template schema, fills the template, and uploads the result to S3. It returns `success`, `output_key`, `output_url`, `deal_id`, `sponsors_found`, and `sponsor_names`.
 
-## API Endpoints
+### Other consumers
 
-### `GET /health`
-
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "version": "1.0.0",
-  "engine": "docxtpl"
-}
-```
-
-### `POST /fill`
-
-Fill template and return as download.
-
-**Request Body:**
-```json
-{
-  "data": {
-    "cover": {
-      "memo_title": "INVESTMENT MEMORANDUM",
-      "property_name": "Example Property"
-    },
-    "sections": {
-      "transaction_overview": {
-        "deal_facts": [
-          {"label": "Property Address", "value": "123 Main St"},
-          {"label": "Loan Amount", "value": "$10,000,000"}
-        ]
-      }
-    }
-  },
-  "images": {
-    "IMAGE_AERIAL_MAP": "base64-encoded-image-data..."
-  },
-  "template_key": "_Templates/Fairbridge_Memo_Template_v1_0.docx",
-  "output_filename": "Deal_Memo.docx"
-}
-```
-
-**Response:** Word document download
-
-### `POST /fill-and-upload`
-
-Fill template and upload to S3.
-
-**Request Body:**
-```json
-{
-  "data": { /* same as /fill */ },
-  "images": { /* same as /fill */ },
-  "template_key": "_Templates/Fairbridge_Memo_Template_v1_0.docx",
-  "output_key": "deals/output/Deal_Memo_2026-01-29.docx"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "output_key": "deals/output/Deal_Memo_2026-01-29.docx",
-  "output_url": "https://nyc3.digitaloceanspaces.com/fam.workspace/deals/output/Deal_Memo_2026-01-29.docx",
-  "original_key": "deals/output/Deal_Memo_2026-01-29.docx"
-}
-```
-
-### `GET /template-info`
-
-Get template variables for debugging.
-
-**Query Parameters:**
-- `template_key` (optional): S3 key to template file
-
-**Response:**
-```json
-{
-  "template_key": "_Templates/Fairbridge_Memo_Template_v1_0.docx",
-  "variables": ["cover.memo_title", "sections.executive_summary.narrative", ...],
-  "variable_count": 150
-}
-```
-
-## Template Syntax (Jinja2/docxtpl)
-
-### Simple Values
-```
-{{ cover.memo_title }}
-{{ sections.property.description_narrative }}
-```
-
-### Loops (Regular)
-```
-{% for highlight in sections.executive_summary.key_highlights %}
-• {{ highlight }}
-{% endfor %}
-```
-
-### Loops (Table Rows)
-```
-{%tr for fact in sections.transaction_overview.deal_facts %}
-  {{ fact.label }}  |  {{ fact.value }}
-{%tr endfor %}
-```
-
-### Conditionals
-```
-{% if sections.market.enabled %}
-6. MARKET OVERVIEW
-{{ sections.market.narrative }}
-{% endif %}
-```
-
-### Images
-```
-{{ IMAGE_AERIAL_MAP }}
-```
-
-## Image Handling
-
-Images are passed as base64-encoded strings in the `images` object. The service:
-1. Decodes the base64 data
-2. Calculates optimal dimensions (max 6.5" wide × 8.0" tall)
-3. Maintains aspect ratio
-4. Inserts as InlineImage at placeholder location
-
-**Supported Image Keys:**
-- `IMAGE_SOURCES_USES`
-- `IMAGE_CAPITAL_STACK_CLOSING`
-- `IMAGE_CAPITAL_STACK_MATURITY`
-- `IMAGE_AERIAL_MAP`
-- `IMAGE_LOCATION_MAP`
-- `IMAGE_REGIONAL_MAP`
-- `IMAGE_SITE_PLAN`
-- `IMAGE_STREET_VIEW`
-- `IMAGE_FORECLOSURE_DEFAULT`
-- `IMAGE_FORECLOSURE_NOTE`
-
-## S3 Configuration
-
-- **Endpoint:** `https://nyc3.digitaloceanspaces.com`
-- **Bucket:** `fam.workspace`
-- **Region:** `nyc3`
-
-Templates are stored in `_Templates/` prefix.
-
-## Differences from IDS Template Filler
-
-| Feature | IDS Template Filler | Memo Filler |
-|---------|---------------------|-------------|
-| Template Engine | Custom regex replacement | docxtpl (Jinja2) |
-| Loops | Custom SPONSOR_SECTION handler | Native `{% for %}` |
-| Conditionals | None | Native `{% if %}` |
-| Nested Data | Flat placeholders only | Full dot notation |
-| Use Case | Simple IDS documents | Complex deal memos |
-
-## Dependencies
-
-- `fastapi` - Web framework
-- `uvicorn` - ASGI server
-- `docxtpl` - Word template engine (Jinja2-based)
-- `python-docx` - Word document manipulation
-- `boto3` - AWS S3 / DigitalOcean Spaces
-- `Pillow` - Image processing
-
-## Version History
-
-- **1.0.0** - Initial release with docxtpl support
+1. Send `DealInputPayload` (array of deal objects) to `POST /fill-from-deal` with `output_key` and optional `deal_index`.
+2. Use `deal_id` and `deal_folder` for routing or naming.
+3. Read sections from each `DealInput` (cover, loan_terms, sponsor, narratives, etc.) as needed.

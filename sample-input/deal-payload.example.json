@@ -1,0 +1,222 @@
+[
+  {
+    "deal_id": "example-deal",
+    "deal_folder": "Example Deal Folder",
+    "generated_at": "2026-01-31T19:32:33.420Z",
+    "cover": {
+      "property_address": "123 Main St, City, ST",
+      "credit_committee": "CC1, CC2",
+      "underwriting_team": "UW1, UW2",
+      "date": "1/31/2026"
+    },
+    "deal_facts": {
+      "property_type": "Retail",
+      "loan_purpose": "Refinance",
+      "loan_amount": "$27,000,000",
+      "source": "Source Name"
+    },
+    "loan_terms": {
+      "interest_rate": {
+        "description": "SOFR plus spread.",
+        "default_rate": "Default rate description."
+      },
+      "origination_fee": "1%",
+      "exit_fee": "1%",
+      "prepayment": "Permitted per loan docs.",
+      "guaranty": "Bad boy and interest/carry.",
+      "collateral": "First mortgage and pledge of membership interests."
+    },
+    "leverage": {
+      "fb_ltc_at_closing": "51.00%",
+      "ltc_at_maturity": "57.00%",
+      "ltv_at_closing": "37.00%",
+      "ltv_at_maturity": "42.00%",
+      "ltpp": "57.00%",
+      "debt_yield_fully_drawn": "6.81%"
+    },
+    "sponsor": {
+      "table": [
+        {
+          "entity": "Sponsor LLC",
+          "profit_percentage_interest": "100%",
+          "membership_interest": 1000,
+          "capital_interest_amount": 20000000,
+          "capital_interest_percentage": "100%"
+        }
+      ],
+      "borrowing_entity": "Borrower LLC",
+      "guarantors": {
+        "names": ["Guarantor One"],
+        "guarantees": ["bad boy", "interest", "carry"],
+        "combined_net_worth": 239650000,
+        "combined_cash_position": 8400000,
+        "combined_securities_holdings": 92249616,
+        "lender_requirements": {
+          "minimum_net_worth": 150000000,
+          "minimum_liquidity_securities": 30000000
+        }
+      },
+      "principals": [
+        {
+          "name": "Principal Name",
+          "title": "Title",
+          "company": "Company",
+          "experience": "Experience summary."
+        }
+      ]
+    },
+    "sources_and_uses": {
+      "table": {
+        "title": "Sources and Uses",
+        "sources": [{"item": "Loan", "amount": 27000000}],
+        "total_sources": 27000000,
+        "uses": [{"category": "Uses", "items": [{"item": "Acquisition", "amount": 27000000}]}],
+        "total_uses": 27000000,
+        "notes": []
+      },
+      "total_project_cost": "",
+      "equity_at_closing": "",
+      "equity_already_invested": ""
+    },
+    "closing_disbursement": {
+      "payoff_existing_debt": "",
+      "broker_fee": "",
+      "origination_fee": "",
+      "closing_costs_title": "",
+      "lender_legal": "",
+      "borrower_legal": "",
+      "misc": "",
+      "interest_reserve": "",
+      "total_disbursements": "$24,795,500",
+      "sponsors_equity_at_closing": "$980,876",
+      "fairbridge_release_at_closing": "$23,814,624"
+    },
+    "capital_stack": {
+      "table": {
+        "title": "Capital Stack",
+        "sources": [{"item": "Loan", "amount": 27000000}],
+        "total_sources": 27000000,
+        "uses": [{"category": "Uses", "items": [{"item": "Refinance", "amount": 24000000}]}],
+        "total_uses": 27000000,
+        "notes": []
+      }
+    },
+    "due_diligence": {
+      "lenders_counsel": null,
+      "borrowers_counsel": null,
+      "appraisal_firm": "Appraiser",
+      "appraisal_company": "Appraisal Co",
+      "pca_firm": null,
+      "background_check_firm": null,
+      "environmental_firm": "Environmental Co",
+      "site_visit_team": null
+    },
+    "property": {
+      "name": "Property Name",
+      "address": {
+        "street": "123 Main St",
+        "city": "City",
+        "county": "County",
+        "state": "ST",
+        "zip": "12345"
+      },
+      "property_type": "Retail",
+      "year_built": 1980,
+      "year_renovated": 2000,
+      "land_area_acres": 22.79,
+      "land_area_sf": 992684,
+      "building_sf": 240987,
+      "num_buildings": 4,
+      "num_stories": 1,
+      "occupancy_current": 82,
+      "occupancy_stabilized": 96,
+      "anchor_tenants": "Anchor A, Anchor B",
+      "parking_spaces": 991,
+      "parking_ratio": 4.11,
+      "condition": "Average",
+      "parcel_numbers": "123-45-67"
+    },
+    "valuation": {
+      "as_is_value": "$46,600,000",
+      "as_stabilized_value": "$51,800,000",
+      "cap_rate": "6.00%",
+      "discount_rate": "8.50%",
+      "terminal_cap_rate": "6.50%",
+      "noi": "$2,982,866",
+      "effective_gross_income": "$5,119,263",
+      "operating_expenses": "$2,136,397",
+      "expense_ratio": "41.73%"
+    },
+    "zoning": {
+      "zone_code": "B-2P",
+      "permitted_uses": "Retail, office, etc.",
+      "live_local_act": {
+        "description": "Statewide attainable housing strategy.",
+        "subject_applicability": "Applicable per attorney."
+      },
+      "highest_best_use_vacant": "Mixed-Use",
+      "highest_best_use_improved": "Redevelopment"
+    },
+    "redevelopment": {
+      "description": "Partial demolition and multifamily.",
+      "proposed_units": 577,
+      "demolition_area_sf": 39203,
+      "land_area_for_multifamily": 6.3,
+      "estimated_demolition_cost": "$600,000"
+    },
+    "environmental": {
+      "firm": "Environmental Firm",
+      "report_date": "April 2022",
+      "property_address": "123 Main St",
+      "findings_summary": "No RECs identified.",
+      "historical_recs": [],
+      "recognized_environmental_conditions": [],
+      "controlled_recs": [],
+      "assessment_standard": "ASTM E1527-13"
+    },
+    "rent_roll": {
+      "occupancy_rate": "",
+      "total_monthly_rent": "",
+      "total_annual_rent": ""
+    },
+    "active_litigation": {
+      "exists": false,
+      "cases": {}
+    },
+    "comps": {
+      "sales_comps": []
+    },
+    "construction_budget": {
+      "total_budget": "",
+      "hard_costs": "",
+      "soft_costs": ""
+    },
+    "risks_and_mitigants": {
+      "items": [
+        {
+          "risk": "Entitlement Risk",
+          "description": "Description.",
+          "mitigant": "Live Local Act fallback."
+        }
+      ]
+    },
+    "deal_highlights": {
+      "items": [
+        {
+          "highlight": "Strong Cash Flow",
+          "description": "Description."
+        }
+      ]
+    },
+    "collaborative_ventures": {},
+    "loan_issues": {
+      "income_producing": null,
+      "development": null
+    },
+    "narratives": {
+      "transaction_overview": "Transaction overview narrative.",
+      "loan_terms_narrative": "Loan terms narrative.",
+      "property_overview": "Property overview narrative."
+    }
+  }
+]
