@@ -1,10 +1,12 @@
 # Memo Filler
 
-Consumes the **deal memo input format** and supports filling or generating memo content from structured deal data.
+Consumes the **deal memo input format** (the exact JSON output of **Layer 3**) and fills the Word memo template from that structured data. No separate schema step is required—Layer 3 output has the required fields for the memo.
+
+**Memo template:** `templates/FB_Deal_Memo_Template.docx` (source: `~/Downloads/FB Deal Memo_Template.docx`). The service loads the template from S3; upload this file to your bucket at the key used by the API (e.g. `_Templates/Fairbridge_Memo_Template_v2_0.docx`). See `templates/README.md`.
 
 ## Input format
 
-The input is an **array of deal objects** (`DealInput[]`). Each element has this shape:
+The input is the **Layer 3 output**: either a single deal object or an **array of deal objects** (`DealInput[]`). Each element has this shape:
 
 | Top-level key | Description |
 |---------------|-------------|

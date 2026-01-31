@@ -634,10 +634,10 @@ class Layer2ToSchemaMapper:
 # =============================================================================
 class DealInputToSchemaMapper:
     """
-    Maps the deal memo input format (DealInputPayload element) to the
-    template schema expected by fill_template(). Use when input is the
-    structured deal object (deal_id, cover, deal_facts, loan_terms, sponsor,
-    narratives, etc.) instead of Layer 2 extractions.
+    Maps Layer 3 output (deal JSON with required memo fields) to the
+    template schema expected by fill_template(). Input is the exact
+    Layer 3 output: deal_id, cover, deal_facts, loan_terms, sponsor,
+    narratives, etc.
     """
 
     def __init__(self, deal: Dict[str, Any]):
@@ -922,19 +922,25 @@ class DealInputToSchemaMapper:
 
 
 # =============================================================================
+# Template (S3 key for FB Deal Memo template)
+# =============================================================================
+DEFAULT_TEMPLATE_KEY = "_Templates/FB_Deal_Memo_Template.docx"
+
+
+# =============================================================================
 # Request/Response Models
 # =============================================================================
 class FillRequest(BaseModel):
     data: Dict[str, Any]
     images: Dict[str, str] = {}
-    template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx"
+    template_key: str = DEFAULT_TEMPLATE_KEY
     output_filename: str = "Deal_Memo_Generated.docx"
 
 
 class FillAndUploadRequest(BaseModel):
     data: Dict[str, Any]
     images: Dict[str, str] = {}
-    template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx"
+    template_key: str = DEFAULT_TEMPLATE_KEY
     output_key: str
 
 
@@ -942,7 +948,7 @@ class FillFromLayer2Request(BaseModel):
     """NEW: Request model for direct Layer 2 → Memo generation."""
     layer2_data: List[Dict[str, Any]]  # Raw Layer 2 extractions array
     images: Dict[str, str] = {}
-    template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx"
+    template_key: str = DEFAULT_TEMPLATE_KEY
     output_key: str
     deal_folder: str = ""  # Optional deal folder name for logging
 
@@ -952,7 +958,7 @@ class FillFromDealRequest(BaseModel):
     payload: List[Dict[str, Any]]  # Array of deal objects (DealInputPayload)
     deal_index: int = 0  # Which deal in the array to use
     images: Dict[str, str] = {}
-    template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx"
+    template_key: str = DEFAULT_TEMPLATE_KEY
     output_key: str
 
 
@@ -1164,10 +1170,10 @@ def _run_fill_from_deal(
     payload: List[Dict[str, Any]],
     deal_index: int,
     output_key: str,
-    template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx",
+    template_key: str = DEFAULT_TEMPLATE_KEY,
     images: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
-    """Shared logic for fill-from-deal: map deal to schema, fill template, upload to S3."""
+    """Shared logic for fill-from-deal: (1) pull template from S3, (2) map Layer 3 input to schema, (3) fill template, (4) upload result to S3."""
     if not payload:
         raise HTTPException(status_code=400, detail="payload must be a non-empty array of deal objects")
     if deal_index < 0 or deal_index >= len(payload):
@@ -1184,8 +1190,11 @@ def _run_fill_from_deal(
     sponsor_names = [s.get("name", "") for s in sponsors]
     print(f"Sponsors captured: {sponsor_names}")
 
+    # 1. Pull template from S3
     template_bytes = download_template(template_key)
+    # 2. Fill template with schema (Layer 3 input mapped to template variables)
     filled_bytes = fill_template(template_bytes, schema_data, images or {})
+    # 3. Upload filled memo to S3
     out_key = get_unique_output_key(output_key)
     output_url = upload_to_s3(filled_bytes, out_key)
 
@@ -1205,15 +1214,17 @@ def _run_fill_from_deal(
 @app.post("/fill-from-deal")
 async def fill_from_deal_endpoint(request: Request):
     """
-    Fill memo from the deal memo input format.
+    Fill memo from Layer 3 output (deal JSON with required fields for the memo).
+
+    Input is the exact JSON produced by Layer 3; no separate schema step needed.
 
     Accepts two body shapes so n8n or other callers can send either format:
 
     1) Wrapped (recommended):
        { "payload": [ { deal_id, deal_folder, cover, deal_facts, ... } ], "output_key": "path/to.docx", "deal_index": 0, "images": {}, "template_key": "..." }
 
-    2) Raw deal (body = single deal object):
-       Body is the deal object directly. Pass output_key as query param: ?output_key=path/to.docx
+    2) Raw Layer 3 output (body = single deal object):
+       Body is the deal object directly. output_key optional (default: deals/{deal_id}/Investment_Memo.docx).
 
     Returns: success, output_key, output_url, deal_id, deal_folder, sponsors_found, sponsor_names, template_used
     """
@@ -1225,7 +1236,7 @@ async def fill_from_deal_endpoint(request: Request):
     payload = None
     deal_index = 0
     output_key = None
-    template_key = "_Templates/Fairbridge_Memo_Template_v2_0.docx"
+    template_key = DEFAULT_TEMPLATE_KEY
     images = {}
 
     if isinstance(body, dict) and "payload" in body and isinstance(body.get("payload"), list):
@@ -1250,13 +1261,13 @@ async def fill_from_deal_endpoint(request: Request):
     if not payload:
         raise HTTPException(
             status_code=422,
-            detail="Body must be either (1) { \"payload\": [ deal, ... ], \"output_key\": \"...\" } or (2) a single deal object with query param output_key=..."
+            detail="Body must be either (1) { \"payload\": [ deal, ... ], \"output_key\": \"...\" } or (2) a single deal object (optionally ?output_key=...)"
         )
-    if not output_key:
-        raise HTTPException(
-            status_code=422,
-            detail="output_key is required: include in body when using payload wrapper, or as query param when sending raw deal (e.g. ?output_key=deals/memo.docx)"
-        )
+    # Default output_key from deal_id when not provided (e.g. raw deal from n8n with no query param)
+    if not output_key and payload:
+        deal_id = payload[deal_index].get("deal_id") if deal_index < len(payload) else payload[0].get("deal_id")
+        safe_id = (deal_id or "deal").strip().replace(" ", "-")
+        output_key = f"deals/{safe_id}/Investment_Memo.docx"
 
     return _run_fill_from_deal(payload=payload, deal_index=deal_index, output_key=output_key, template_key=template_key, images=images)
 
@@ -1277,7 +1288,7 @@ async def transform_layer2_endpoint(layer2_data: List[Dict[str, Any]]):
 
 
 @app.get("/template-info")
-async def get_template_info(template_key: str = "_Templates/Fairbridge_Memo_Template_v2_0.docx"):
+async def get_template_info(template_key: str = DEFAULT_TEMPLATE_KEY):
     """Get information about a template (useful for debugging)."""
     try:
         template_bytes = download_template(template_key)
