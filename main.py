@@ -1370,6 +1370,11 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
         flat["leverage"] = flat["leverage_raw"]
     if "loan_terms_raw" in flat:
         flat["loan_terms"] = flat["loan_terms_raw"]
+    # Normalize interest_rate so {{ loan_terms.interest_rate }} renders as text (Layer 3 may send a dict with description/default_rate)
+    if "loan_terms" in flat and isinstance(flat["loan_terms"], dict):
+        ir = flat["loan_terms"].get("interest_rate")
+        if isinstance(ir, dict):
+            flat["loan_terms"]["interest_rate"] = ir.get("description", str(ir))
     return flat
 
 
