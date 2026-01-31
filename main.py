@@ -1154,6 +1154,7 @@ class DealInputToSchemaMapper:
         out["exit_strategy"] = {"narrative": exit_narr} if isinstance(exit_narr, str) else (exit_narr if isinstance(exit_narr, dict) else {"narrative": ""})
         fa_narr = self._narratives.get("foreclosure_assumptions") or ""
         out["foreclosure_assumptions"] = {"narrative": fa_narr} if isinstance(fa_narr, str) else (fa_narr if isinstance(fa_narr, dict) else {"narrative": ""})
+        out["narratives"] = self._narratives  # Preserve for flatten_schema (e.g. loan_terms.narrative from loan_terms_narrative)
         # Add raw Layer 3 fields for templates that use direct property access
         # (e.g. {{ deal_facts_raw.property_type }} or {{ property_type }})
         out["deal_facts_raw"] = self._deal_facts
@@ -1383,6 +1384,16 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
         lt_narr = flat.get("narratives", {}).get("loan_terms_narrative", "")
         if lt_narr:
             flat["loan_terms"]["narrative"] = lt_narr
+    if "zoning_entitlements" in flat and isinstance(flat["zoning_entitlements"], dict):
+        if "narrative" not in flat["zoning_entitlements"] and "summary_narrative" in flat["zoning_entitlements"]:
+            flat["zoning_entitlements"]["narrative"] = flat["zoning_entitlements"]["summary_narrative"]
+    if "active_litigation" in flat and isinstance(flat["active_litigation"], dict):
+        if "narrative" not in flat["active_litigation"]:
+            cases = flat["active_litigation"].get("cases", [])
+            if cases:
+                flat["active_litigation"]["narrative"] = f"{len(cases)} active case(s). See details below."
+            else:
+                flat["active_litigation"]["narrative"] = "No active litigation."
     return flat
 
 
