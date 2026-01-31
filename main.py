@@ -1077,12 +1077,26 @@ def prepare_images_for_template(doc: DocxTemplate, images: Dict[str, str]) -> Di
     return inline_images
 
 
+def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Flatten schema so template can use top-level vars like deal_facts, loan_terms, narrative."""
+    flat = dict(data)
+    sections = flat.pop("sections", None) or {}
+    for _section_name, section_data in sections.items():
+        if isinstance(section_data, dict):
+            for k, v in section_data.items():
+                if k not in flat:
+                    flat[k] = v
+    return flat
+
+
 def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str, str]) -> bytes:
     template_stream = BytesIO(template_bytes)
     doc = DocxTemplate(template_stream)
 
     inline_images = prepare_images_for_template(doc, images)
-    context = {**data, **inline_images}
+    # Flatten sections into root so template placeholders like {{ deal_facts }} work
+    flat_data = flatten_schema_for_template(data)
+    context = {**flat_data, **inline_images}
 
     try:
         doc.render(context)
