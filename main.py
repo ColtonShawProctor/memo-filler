@@ -1154,6 +1154,20 @@ class DealInputToSchemaMapper:
         out["exit_strategy"] = {"narrative": exit_narr} if isinstance(exit_narr, str) else (exit_narr if isinstance(exit_narr, dict) else {"narrative": ""})
         fa_narr = self._narratives.get("foreclosure_assumptions") or ""
         out["foreclosure_assumptions"] = {"narrative": fa_narr} if isinstance(fa_narr, str) else (fa_narr if isinstance(fa_narr, dict) else {"narrative": ""})
+        # Add raw Layer 3 fields for templates that use direct property access
+        # (e.g. {{ deal_facts_raw.property_type }} or {{ property_type }})
+        out["deal_facts_raw"] = self._deal_facts
+        out["leverage_raw"] = self._leverage
+        out["loan_terms_raw"] = self._loan_terms
+        for key, val in self._deal_facts.items():
+            if key not in out:
+                out[key] = val
+        for key, val in self._leverage.items():
+            if key not in out:
+                out[key] = val
+        for key, val in (self._loan_terms or {}).items():
+            if key not in out:
+                out[key] = val
         return out
 
 
@@ -1342,6 +1356,12 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
         flat["note_interest_scenario"] = _scenario_with_items(fa.get("scenario_note_rate"))
     # Keep sections for templates that use sections.* paths (e.g. sections.transaction_overview.deal_facts)
     flat["sections"] = sections
+    # Spread raw Layer 3 fields for templates that use direct property access (e.g. {{ property_type }}, {{ loan_amount }})
+    for raw_key in ("deal_facts_raw", "leverage_raw", "loan_terms_raw"):
+        if raw_key in flat and isinstance(flat[raw_key], dict):
+            for k, v in flat[raw_key].items():
+                if k not in flat:
+                    flat[k] = v
     return flat
 
 
