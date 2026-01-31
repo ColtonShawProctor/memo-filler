@@ -1340,6 +1340,8 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
         flat["default_interest_scenario"] = _scenario_with_items(fa.get("scenario_default_rate"))
     if "note_interest_scenario" not in flat:
         flat["note_interest_scenario"] = _scenario_with_items(fa.get("scenario_note_rate"))
+    # Keep sections for templates that use sections.* paths (e.g. sections.transaction_overview.deal_facts)
+    flat["sections"] = sections
     return flat
 
 
