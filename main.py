@@ -1375,6 +1375,14 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
         ir = flat["loan_terms"].get("interest_rate")
         if isinstance(ir, dict):
             flat["loan_terms"]["interest_rate"] = ir.get("description", str(ir))
+    # Template uses property_overview.narrative, location_overview.narrative, etc.; ensure .narrative alias exists
+    if "property_overview" in flat and isinstance(flat["property_overview"], dict):
+        if "narrative" not in flat["property_overview"] and "description_narrative" in flat["property_overview"]:
+            flat["property_overview"]["narrative"] = flat["property_overview"]["description_narrative"]
+    if "loan_terms" in flat and isinstance(flat["loan_terms"], dict):
+        lt_narr = flat.get("narratives", {}).get("loan_terms_narrative", "")
+        if lt_narr:
+            flat["loan_terms"]["narrative"] = lt_narr
     return flat
 
 
