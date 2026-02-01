@@ -950,6 +950,8 @@ class DealInputToSchemaMapper:
         print(f"DEBUG _build_sponsorship RETURN: overview_narrative will be = '{sponsor_display_name if sponsor_display_name else 'FALLBACK'}'")
         return {
             "name": sponsor_display_name,
+            "table": self._sponsor.get("table") or [],  # ownership structure table
+            "overview": sponsor_display_name,  # Template uses sponsor.overview
             "overview_narrative": sponsor_display_name if sponsor_display_name else (overview[:3000] if isinstance(overview, str) else str(overview)[:3000]),
             "financial_summary": financial_summary if financial_summary else [{"label": "TBD", "value": "TBD"}],
             "track_record": [{"property": "See sponsor narrative", "role": "Principal", "outcome": "Various"}],
@@ -1132,6 +1134,9 @@ class DealInputToSchemaMapper:
         out["capital_stack_sources"] = cap_sources
         out["capital_stack_uses"] = cap_uses
         out["capital_stack"] = {"title": cap_title, "sources": cap_sources, "uses": cap_uses}
+
+        # Pass sponsor_table directly to avoid dict wrapper losing it
+        out["sponsor_table"] = self._sponsor.get("table") or []
 
         cd = self._closing_disbursement or {}
         if not isinstance(cd, dict):
