@@ -649,6 +649,10 @@ class DealInputToSchemaMapper:
         self._leverage = deal.get("leverage") or {}
         self._closing_disbursement = deal.get("closing_disbursement") or {}
         self._sponsor = deal.get("sponsor") or {}
+        print(f"DEBUG DealInputToSchemaMapper.__init__: deal keys = {list(deal.keys())}")
+        print(f"DEBUG: self._sponsor = {self._sponsor}")
+        print(f"DEBUG: self._sponsor.get('name') = {self._sponsor.get('name')}")
+        print(f"DEBUG: self._sponsor.get('guarantors') = {self._sponsor.get('guarantors')}")
         self._sources_uses = deal.get("sources_and_uses") or {}
         self._valuation = deal.get("valuation") or {}
         self._narratives = deal.get("narratives") or {}
@@ -894,7 +898,11 @@ class DealInputToSchemaMapper:
         return {"narrative": (narrative or "")[:4000] if isinstance(narrative, str) else str(narrative or "")[:4000]}
 
     def _build_sponsorship(self) -> Dict[str, Any]:
+        print(f"DEBUG _build_sponsorship: self._sponsor = {self._sponsor}")
+        print(f"DEBUG _build_sponsorship: self._sponsor.get('name') = {self._sponsor.get('name')}")
         guarantors = self._sponsor.get("guarantors") or {}
+        print(f"DEBUG _build_sponsorship: guarantors = {guarantors}")
+        print(f"DEBUG _build_sponsorship: guarantors.get('names') = {guarantors.get('names')}")
         principals = (self._sponsor.get("principals") or [])
         sponsors = []
         for name in (guarantors.get("names") or []):
@@ -938,6 +946,8 @@ class DealInputToSchemaMapper:
             sponsor_display_name = " & ".join(str(n) for n in sponsor_names) if sponsor_names else ""
         if not sponsor_display_name:
             sponsor_display_name = "See sponsor details"
+        print(f"DEBUG _build_sponsorship RETURN: sponsor_display_name = '{sponsor_display_name}'")
+        print(f"DEBUG _build_sponsorship RETURN: overview_narrative will be = '{sponsor_display_name if sponsor_display_name else 'FALLBACK'}'")
         return {
             "name": sponsor_display_name,
             "overview_narrative": sponsor_display_name if sponsor_display_name else (overview[:3000] if isinstance(overview, str) else str(overview)[:3000]),
