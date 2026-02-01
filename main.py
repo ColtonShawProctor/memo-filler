@@ -825,7 +825,7 @@ class DealInputToSchemaMapper:
             else:
                 percent = self._fmt_pct(item.get("rate_pct"))
             sources.append({
-                "label": item.get("item", "Source"),
+                "label": item.get("label") or item.get("item") or "Source",
                 "amount": self._fmt_currency(raw_amount),
                 "percent": percent,
             })
@@ -837,7 +837,7 @@ class DealInputToSchemaMapper:
                 if not isinstance(item, dict):
                     continue
                 uses.append({
-                    "label": item.get("item", "Use"),
+                    "label": item.get("label") or item.get("item") or "Use",
                     "amount": self._fmt_currency(item.get("amount")),
                     "release_conditions": cat.get("category", ""),
                 })
