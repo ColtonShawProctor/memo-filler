@@ -1135,10 +1135,34 @@ class DealInputToSchemaMapper:
         out["capital_stack_uses"] = cap_uses
         out["capital_stack"] = {"title": cap_title, "sources": cap_sources, "uses": cap_uses}
 
-        # Pass sponsor_table directly to avoid dict wrapper losing it
+        # === DIRECT TEMPLATE VARIABLES (bypass dict wrapper) ===
         out["sponsor_table"] = self._sponsor.get("table") or []
+        out["sponsors"] = self._sponsor.get("principals") or []
+
+        sources_table = self._sources_uses.get("table") or {}
+        out["sources_list"] = sources_table.get("sources") or []
+        out["uses_list"] = sources_table.get("uses") or []
+
+        cap_stack = self.deal.get("capital_stack") or {}
+        cap_table = cap_stack.get("table") if isinstance(cap_stack.get("table"), dict) else cap_stack
+        out["capital_stack_sources"] = (cap_table.get("sources") or []) if isinstance(cap_table, dict) else (out.get("capital_stack_sources") or [])
+
+        cv = self.deal.get("collaborative_ventures")
+        out["collaborative_ventures_list"] = cv.get("items") if isinstance(cv, dict) else (cv if isinstance(cv, list) else [])
 
         cd = self._closing_disbursement or {}
+        out["disbursement_payoff"] = cd.get("payoff_existing_debt") or ""
+        out["disbursement_broker_fee"] = cd.get("broker_fee") or ""
+        out["disbursement_origination_fee"] = cd.get("origination_fee") or ""
+        out["disbursement_closing_costs"] = cd.get("closing_costs_title") or ""
+        out["disbursement_lender_legal"] = cd.get("lender_legal") or ""
+        out["disbursement_borrower_legal"] = cd.get("borrower_legal") or ""
+        out["disbursement_misc"] = cd.get("misc") or ""
+        out["disbursement_interest_reserve"] = cd.get("interest_reserve") or ""
+        out["disbursement_total"] = cd.get("total_disbursements") or ""
+        out["disbursement_sponsor_equity"] = cd.get("sponsors_equity_at_closing") or ""
+        out["disbursement_fairbridge_release"] = cd.get("fairbridge_release_at_closing") or ""
+
         if not isinstance(cd, dict):
             cd = {}
         # Disbursement table: iterable rows + normalized dict (no None -> template shows "" not "None")
