@@ -746,6 +746,21 @@ class DealInputToSchemaMapper:
             return ""
         return str(val)
 
+    def _strip_markdown(self, text: str) -> str:
+        """Remove markdown formatting from text."""
+        if not isinstance(text, str):
+            return str(text) if text else ""
+        # Remove headers (# ## ###)
+        text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
+        # Remove bold/italic markers
+        text = re.sub(r'\*{1,2}([^*]+)\*{1,2}', r'\1', text)
+        text = re.sub(r'_{1,2}([^_]+)_{1,2}', r'\1', text)
+        # Remove escaped characters
+        text = text.replace('\\#', '#').replace('\\*', '*').replace('\\_', '_')
+        # Clean up extra whitespace
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        return text.strip()
+
     def _build_cover(self) -> Dict[str, Any]:
         addr = self._property.get("address") or {}
         prop_name = self._str_or_empty(self._property.get("name"))
@@ -1115,19 +1130,33 @@ class DealInputToSchemaMapper:
                 "foreclosure_analysis": self._build_foreclosure_analysis(),
             },
         }
-        raw_li = self.deal.get("loan_issues")
-        if raw_li is not None:
+        li = self.deal.get("loan_issues") or {}
+        if li:
             out["loan_issues"] = {
-                "income_producing": raw_li.get("income_producing") if isinstance(raw_li.get("income_producing"), list) else (raw_li.get("income_producing") or []),
-                "development": raw_li.get("development") if isinstance(raw_li.get("development"), list) else (raw_li.get("development") or []),
+                "income_producing": li.get("income_producing") if isinstance(li.get("income_producing"), list) else (li.get("income_producing") or []),
+                "development": li.get("development") if isinstance(li.get("development"), list) else (li.get("development") or []),
             }
+        out["loan_issues_income_producing"] = li.get("income_producing") if isinstance(li.get("income_producing"), list) else []
+        out["loan_issues_development"] = li.get("development") if isinstance(li.get("development"), list) else []
+        out["loan_issues_disclosure"] = li.get("disclosure_statement") or ""
+
         cv = self.deal.get("collaborative_ventures")
-        if isinstance(cv, list):
+        if isinstance(cv, dict):
+            out["collaborative_ventures"] = {"items": cv.get("items") or cv.get("ventures") or list(cv.values()) if cv else []}
+        elif isinstance(cv, list):
             out["collaborative_ventures"] = {"items": cv}
-        elif isinstance(cv, dict):
-            out["collaborative_ventures"] = {"items": list(cv.values()) if cv else []}
         else:
             out["collaborative_ventures"] = {"items": []}
+        if isinstance(cv, dict):
+            out["collaborative_ventures_list"] = cv.get("items") or cv.get("ventures") or list(cv.values()) or []
+            out["collaborative_ventures_disclosure"] = cv.get("disclosure_statement") or ""
+        elif isinstance(cv, list):
+            out["collaborative_ventures_list"] = cv
+            out["collaborative_ventures_disclosure"] = ""
+        else:
+            out["collaborative_ventures_list"] = []
+            out["collaborative_ventures_disclosure"] = ""
+
         # Flatten capital_stack into iterable arrays for Jinja (avoid raw dict in template)
         cap_title, cap_sources, cap_uses = self._build_capital_stack_flat()
         out["capital_stack_title"] = cap_title
@@ -1136,19 +1165,32 @@ class DealInputToSchemaMapper:
         out["capital_stack"] = {"title": cap_title, "sources": cap_sources, "uses": cap_uses}
 
         # === DIRECT TEMPLATE VARIABLES (bypass dict wrapper) ===
-        out["sponsor_table"] = self._sponsor.get("table") or []
+        sponsor_rows = self._sponsor.get("table") or []
+        normalized_sponsor_table = []
+        for row in sponsor_rows:
+            if isinstance(row, dict):
+                normalized_sponsor_table.append({
+                    "entity": row.get("entity") or row.get("name") or row.get("member") or "",
+                    "profit_pct": row.get("profit_pct") or row.get("profit_percentage_interest") or row.get("profit_percentage") or "",
+                    "membership_interest": row.get("membership_interest") or row.get("membership_units") or "",
+                    "capital_interest": row.get("capital_interest") or row.get("capital_contribution") or "",
+                    "capital_pct": row.get("capital_pct") or row.get("capital_interest_percentage") or row.get("capital_percentage") or "",
+                })
+        out["sponsor_table"] = normalized_sponsor_table
         out["sponsors"] = self._sponsor.get("principals") or []
 
         sources_table = self._sources_uses.get("table") or {}
-        out["sources_list"] = sources_table.get("sources") or []
-        out["uses_list"] = sources_table.get("uses") or []
+        out["sources_list"] = sources_table.get("sources") or self._sources_uses.get("sources") or []
+        out["uses_list"] = sources_table.get("uses") or self._sources_uses.get("uses") or []
+        out["sources_total"] = self._sources_uses.get("total_sources") or self._sources_uses.get("sources_total") or ""
+        out["uses_total"] = self._sources_uses.get("total_uses") or self._sources_uses.get("uses_total") or ""
+        out["sources_uses_max_rows"] = max(len(out["sources_list"]), len(out["uses_list"]), 1)
 
         cap_stack = self.deal.get("capital_stack") or {}
         cap_table = cap_stack.get("table") if isinstance(cap_stack.get("table"), dict) else cap_stack
-        out["capital_stack_sources"] = (cap_table.get("sources") or []) if isinstance(cap_table, dict) else (out.get("capital_stack_sources") or [])
-
-        cv = self.deal.get("collaborative_ventures")
-        out["collaborative_ventures_list"] = cv.get("items") if isinstance(cv, dict) else (cv if isinstance(cv, list) else [])
+        out["capital_stack_sources"] = (cap_table.get("sources") or cap_stack.get("sources") or []) if isinstance(cap_table, dict) else []
+        out["capital_stack_uses"] = (cap_table.get("uses") or cap_stack.get("uses") or []) if isinstance(cap_table, dict) else []
+        out["capital_stack_total"] = cap_stack.get("total") or cap_stack.get("sources_total") or ""
 
         cd = self._closing_disbursement or {}
         out["disbursement_payoff"] = cd.get("payoff_existing_debt") or ""
@@ -1162,6 +1204,29 @@ class DealInputToSchemaMapper:
         out["disbursement_total"] = cd.get("total_disbursements") or ""
         out["disbursement_sponsor_equity"] = cd.get("sponsors_equity_at_closing") or ""
         out["disbursement_fairbridge_release"] = cd.get("fairbridge_release_at_closing") or ""
+
+        # Clean display values for Deal Facts (not full paragraphs)
+        lt = self._loan_terms or {}
+        interest_rate_raw = lt.get("interest_rate") or self._deal_facts.get("interest_rate") or ""
+        if isinstance(interest_rate_raw, str) and len(interest_rate_raw) > 50:
+            match = re.search(r'SOFR\s*\+\s*\d+|[\d.]+%', interest_rate_raw)
+            out["interest_rate_display"] = match.group(0) if match else "See Loan Terms"
+        else:
+            out["interest_rate_display"] = interest_rate_raw or ""
+
+        orig_fee_raw = lt.get("origination_fee") or ""
+        if isinstance(orig_fee_raw, str) and len(orig_fee_raw) > 20:
+            match = re.search(r'[\d.]+%', orig_fee_raw)
+            out["origination_fee_display"] = match.group(0) if match else "See Loan Terms"
+        else:
+            out["origination_fee_display"] = orig_fee_raw or ""
+
+        exit_fee_raw = lt.get("exit_fee") or ""
+        if isinstance(exit_fee_raw, str) and len(exit_fee_raw) > 20:
+            match = re.search(r'[\d.]+%', exit_fee_raw)
+            out["exit_fee_display"] = match.group(0) if match else "See Loan Terms"
+        else:
+            out["exit_fee_display"] = exit_fee_raw or ""
 
         if not isinstance(cd, dict):
             cd = {}
@@ -1215,7 +1280,11 @@ class DealInputToSchemaMapper:
         out["exit_strategy"] = {"narrative": exit_narr} if isinstance(exit_narr, str) else (exit_narr if isinstance(exit_narr, dict) else {"narrative": ""})
         fa_narr = self._narratives.get("foreclosure_assumptions") or ""
         out["foreclosure_assumptions"] = {"narrative": fa_narr} if isinstance(fa_narr, str) else (fa_narr if isinstance(fa_narr, dict) else {"narrative": ""})
-        out["narratives"] = self._narratives  # Preserve for flatten_schema (e.g. loan_terms.narrative from loan_terms_narrative)
+        out["narratives"] = {k: self._strip_markdown(v) if isinstance(v, str) else v for k, v in self._narratives.items()}
+        if "loan_terms" in out.get("sections", {}):
+            lt_section = out["sections"]["loan_terms"]
+            if isinstance(lt_section, dict) and "narrative" in lt_section:
+                lt_section["narrative"] = self._strip_markdown(lt_section["narrative"])
         # Add raw Layer 3 fields for templates that use direct property access
         # (e.g. {{ deal_facts_raw.property_type }} or {{ property_type }})
         out["deal_facts_raw"] = self._deal_facts
@@ -1235,6 +1304,19 @@ class DealInputToSchemaMapper:
         for key, val in (self._loan_terms or {}).items():
             if key not in out:
                 out[key] = val
+
+        # Debug logging for empty values
+        print("=== Transform Output Debug ===")
+        print(f"sponsor_table rows: {len(out.get('sponsor_table', []))}")
+        print(f"sources_list rows: {len(out.get('sources_list', []))}")
+        print(f"uses_list rows: {len(out.get('uses_list', []))}")
+        print(f"capital_stack_sources rows: {len(out.get('capital_stack_sources', []))}")
+        print(f"collaborative_ventures_list rows: {len(out.get('collaborative_ventures_list', []))}")
+        print(f"loan_issues_income_producing rows: {len(out.get('loan_issues_income_producing', []))}")
+        print(f"disbursement_payoff: '{out.get('disbursement_payoff', '')}'")
+        if out.get('sponsor_table'):
+            print(f"First sponsor row: {out['sponsor_table'][0]}")
+
         return out
 
 
