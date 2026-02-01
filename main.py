@@ -12,6 +12,7 @@ Version: 2.0.0
 import os
 import re
 import base64
+from copy import deepcopy
 from io import BytesIO
 from typing import Dict, Any, Optional, List
 from datetime import datetime
@@ -1368,6 +1369,99 @@ class HealthResponse(BaseModel):
 
 
 # =============================================================================
+# Layer 3 preprocessing (flat variables, markdown stripping, display values)
+# =============================================================================
+def strip_markdown(text: Optional[str]) -> Optional[str]:
+    """Remove markdown formatting from text."""
+    if not text:
+        return text
+    # Remove headers (# ## ### etc)
+    text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
+    # Remove bold markers (**text** or __text__)
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+    text = re.sub(r'__([^_]+)__', r'\1', text)
+    # Remove italic markers (*text* or _text_)
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)
+    text = re.sub(r'_([^_]+)_', r'\1', text)
+    # Remove [GENERATED] prefix if present
+    text = re.sub(r'^\[GENERATED\]\s*', '', text)
+    return text.strip()
+
+
+def extract_first_line_or_value(value: Any) -> str:
+    """If value is a paragraph (multi-line), return first line; else return string value."""
+    if value is None:
+        return ''
+    s = str(value).strip()
+    if not s:
+        return ''
+    first_line = s.split('\n')[0].strip()
+    return first_line
+
+
+def preprocess_layer3_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Preprocess Layer 3 data for template rendering.
+    - Pass-through flat variables (sponsor_table, sources_list, etc.) unchanged
+    - Strips markdown from narratives
+    - Adds display values for Deal Facts
+    - Normalizes due_diligence field name (background_check -> background_check_firm)
+    """
+    result = deepcopy(data)
+
+    # Strip markdown from section narrative fields
+    narrative_fields = [
+        ('transaction_overview', 'narrative'),
+        ('loan_terms', 'narrative'),
+        ('property_overview', 'narrative'),
+        ('location_overview', 'narrative'),
+        ('market_overview', 'narrative'),
+        ('zoning_entitlements', 'narrative'),
+        ('exit_strategy', 'narrative'),
+    ]
+    for section, field in narrative_fields:
+        if section in result and isinstance(result[section], dict) and field in result[section]:
+            result[section] = dict(result[section])
+            result[section][field] = strip_markdown(result[section][field])
+
+    # Strip markdown from top-level narrative fields
+    for field in ('loan_issues_disclosure', 'collaborative_ventures_disclosure'):
+        if field in result and result[field]:
+            result[field] = strip_markdown(result[field])
+
+    # Strip markdown from sponsor bios
+    for sponsor in result.get('sponsors', []):
+        if isinstance(sponsor, dict):
+            for key in ('overview', 'financial_profile', 'track_record'):
+                if key in sponsor and sponsor[key]:
+                    sponsor[key] = strip_markdown(sponsor[key])
+
+    # Add display values for Deal Facts (single-line for template)
+    loan_terms = result.get('loan_terms') or {}
+    if isinstance(loan_terms, dict):
+        ir = loan_terms.get('interest_rate', '')
+        result['interest_rate_display'] = extract_first_line_or_value(ir)
+        result['origination_fee_display'] = loan_terms.get('origination_fee', '')
+        result['exit_fee_display'] = loan_terms.get('exit_fee', '')
+        result['term_display'] = loan_terms.get('term', '')
+        result['extension_display'] = loan_terms.get('extension_option', '')
+    else:
+        result['interest_rate_display'] = ''
+        result['origination_fee_display'] = ''
+        result['exit_fee_display'] = ''
+        result['term_display'] = ''
+        result['extension_display'] = ''
+
+    # Normalize due_diligence: Layer 3 outputs 'background_check', template may expect 'background_check_firm'
+    if 'due_diligence' in result and isinstance(result['due_diligence'], dict):
+        dd = result['due_diligence']
+        if 'background_check' in dd and 'background_check_firm' not in dd:
+            dd['background_check_firm'] = dd['background_check']
+
+    return result
+
+
+# =============================================================================
 # Helper Functions
 # =============================================================================
 def calculate_image_dimensions(image_bytes: bytes, preferred_width: float) -> tuple[float, float]:
@@ -1643,9 +1737,10 @@ async def health_check():
 
 @app.post("/fill")
 async def fill_template_endpoint(request: FillRequest):
-    """Fill template and return as download."""
+    """Fill template and return as download. Layer 3 flat data is preprocessed (markdown stripped, display values added)."""
     template_bytes = download_template(request.template_key)
-    filled_bytes = fill_template(template_bytes, request.data, request.images)
+    processed_data = preprocess_layer3_data(request.data)
+    filled_bytes = fill_template(template_bytes, processed_data, request.images)
 
     return StreamingResponse(
         BytesIO(filled_bytes),
@@ -1656,9 +1751,10 @@ async def fill_template_endpoint(request: FillRequest):
 
 @app.post("/fill-and-upload")
 async def fill_and_upload_endpoint(request: FillAndUploadRequest):
-    """Fill template and upload to S3."""
+    """Fill template and upload to S3. Layer 3 flat data is preprocessed (markdown stripped, display values added)."""
     template_bytes = download_template(request.template_key)
-    filled_bytes = fill_template(template_bytes, request.data, request.images)
+    processed_data = preprocess_layer3_data(request.data)
+    filled_bytes = fill_template(template_bytes, processed_data, request.images)
     output_key = get_unique_output_key(request.output_key)
     output_url = upload_to_s3(filled_bytes, output_key)
 
