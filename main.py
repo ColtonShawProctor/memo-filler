@@ -931,11 +931,16 @@ class DealInputToSchemaMapper:
         overview = self._narratives.get("sponsor_narrative", "")
         if not overview:
             overview = f"The principals are {', '.join(s['name'] for s in sponsors)}. Combined net worth {self._fmt_currency(combined_nw)}, liquidity {self._fmt_currency(combined_liq)}."
-        sponsor_names = guarantors.get("names", [])
-        sponsor_display_name = " & ".join(str(n) for n in sponsor_names) if sponsor_names else "See sponsor details"
+        # Use pre-computed name from Layer 3 if available; otherwise derive from guarantors
+        sponsor_display_name = self._sponsor.get("name")
+        if not sponsor_display_name:
+            sponsor_names = guarantors.get("names", [])
+            sponsor_display_name = " & ".join(str(n) for n in sponsor_names) if sponsor_names else ""
+        if not sponsor_display_name:
+            sponsor_display_name = "See sponsor details"
         return {
             "name": sponsor_display_name,
-            "overview_narrative": overview[:3000] if isinstance(overview, str) else str(overview)[:3000],
+            "overview_narrative": sponsor_display_name if sponsor_display_name else (overview[:3000] if isinstance(overview, str) else str(overview)[:3000]),
             "financial_summary": financial_summary if financial_summary else [{"label": "TBD", "value": "TBD"}],
             "track_record": [{"property": "See sponsor narrative", "role": "Principal", "outcome": "Various"}],
             "_sponsors_detail": sponsors if sponsors else [{"name": "TBD", "total_assets": None, "net_worth": None, "liquidity": None}],
