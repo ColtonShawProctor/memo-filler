@@ -806,14 +806,28 @@ class DealInputToSchemaMapper:
         table = self._sources_uses.get("table") or {}
         if not isinstance(table, dict):
             table = {}
+        total_sources = table.get("total_sources") or 0
+        try:
+            total_sources = float(total_sources)
+        except (TypeError, ValueError):
+            total_sources = 0
         sources = []
         for item in (table.get("sources") or []):
             if not isinstance(item, dict):
                 continue
+            raw_amount = item.get("amount")
+            if total_sources and raw_amount is not None:
+                try:
+                    pct = (float(raw_amount) / total_sources) * 100
+                    percent = f"{pct:.1f}%"
+                except (TypeError, ValueError):
+                    percent = self._fmt_pct(item.get("rate_pct"))
+            else:
+                percent = self._fmt_pct(item.get("rate_pct"))
             sources.append({
                 "label": item.get("item", "Source"),
-                "amount": self._fmt_currency(item.get("amount")),
-                "percent": self._fmt_pct(item.get("rate_pct")),
+                "amount": self._fmt_currency(raw_amount),
+                "percent": percent,
             })
         uses = []
         for cat in (table.get("uses") or []):
@@ -917,7 +931,10 @@ class DealInputToSchemaMapper:
         overview = self._narratives.get("sponsor_narrative", "")
         if not overview:
             overview = f"The principals are {', '.join(s['name'] for s in sponsors)}. Combined net worth {self._fmt_currency(combined_nw)}, liquidity {self._fmt_currency(combined_liq)}."
+        sponsor_names = guarantors.get("names", [])
+        sponsor_display_name = " & ".join(str(n) for n in sponsor_names) if sponsor_names else "See sponsor details"
         return {
+            "name": sponsor_display_name,
             "overview_narrative": overview[:3000] if isinstance(overview, str) else str(overview)[:3000],
             "financial_summary": financial_summary if financial_summary else [{"label": "TBD", "value": "TBD"}],
             "track_record": [{"property": "See sponsor narrative", "role": "Principal", "outcome": "Various"}],
@@ -1159,7 +1176,12 @@ class DealInputToSchemaMapper:
         # (e.g. {{ deal_facts_raw.property_type }} or {{ property_type }})
         out["deal_facts_raw"] = self._deal_facts
         out["leverage_raw"] = self._leverage
-        out["loan_terms_raw"] = self._loan_terms
+        out["loan_terms_raw"] = dict(self._loan_terms) if self._loan_terms else {}
+        # Default missing loan_terms fields so template never shows blank (Layer 3 may not send all keys)
+        for key in ("origination_fee", "exit_fee", "prepayment", "guaranty", "collateral"):
+            val = out["loan_terms_raw"].get(key)
+            if val is None or (isinstance(val, str) and not val.strip()):
+                out["loan_terms_raw"][key] = "See Loan Terms narrative"
         for key, val in self._deal_facts.items():
             if key not in out:
                 out[key] = val
@@ -1357,6 +1379,10 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
         flat["note_interest_scenario"] = _scenario_with_items(fa.get("scenario_note_rate"))
     # Keep sections for templates that use sections.* paths (e.g. sections.transaction_overview.deal_facts)
     flat["sections"] = sections
+    # If sections.sponsorship.overview_narrative is missing, derive from sponsor name (e.g. "Steve Hudson & Charlie Ladd Jr.")
+    if sections.get("sponsorship") and isinstance(sections["sponsorship"], dict):
+        if not sections["sponsorship"].get("overview_narrative"):
+            sections["sponsorship"]["overview_narrative"] = sections["sponsorship"].get("name", "See Sponsor Details")
     # Spread raw Layer 3 fields for templates that use direct property access (e.g. {{ property_type }}, {{ loan_amount }})
     for raw_key in ("deal_facts_raw", "leverage_raw", "loan_terms_raw"):
         if raw_key in flat and isinstance(flat[raw_key], dict):
