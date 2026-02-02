@@ -1887,6 +1887,14 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
         if isinstance(v, dict) and not hasattr(v, "_d"):
             context[k] = _DictWithItemsList(v)
     
+    # CRITICAL: Ensure leverage, deal_facts, loan_terms are never None
+    # Template accesses leverage.ltpp, deal_facts.property_type, loan_terms.interest_rate, etc.
+    for critical_key in ("leverage", "deal_facts", "loan_terms"):
+        if critical_key not in context or context.get(critical_key) is None:
+            context[critical_key] = _DictWithItemsList({})
+        elif hasattr(context.get(critical_key), "_d") and context[critical_key]._d is None:
+            context[critical_key] = _DictWithItemsList({})
+    
     # CRITICAL: Ensure foreclosure_analysis.default_interest_scenario always has assumptions
     # This must happen AFTER wrapping, because the template accesses it via attribute notation
     if "foreclosure_analysis" in context:
