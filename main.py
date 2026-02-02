@@ -1370,6 +1370,47 @@ class DealInputToSchemaMapper:
             if key not in out:
                 out[key] = val
 
+        # Guarantor financials table
+        guarantors = self._sponsor.get("guarantors") or {}
+        out["guarantor_financials"] = {
+            "combined_net_worth": self._str_or_empty(guarantors.get("combined_net_worth")),
+            "combined_cash_position": self._str_or_empty(guarantors.get("combined_cash_position")),
+            "combined_securities": self._str_or_empty(guarantors.get("combined_securities_holdings")),
+            "lender_min_net_worth": "",
+            "lender_min_liquidity": "",
+            "guarantees": "",
+        }
+
+        # Principal financials loop
+        principals = self._sponsor.get("principals") or []
+        out["principal_financials"] = []
+        for p in principals:
+            if isinstance(p, dict):
+                out["principal_financials"].append({
+                    "name": p.get("name", ""),
+                    "title": p.get("title", ""),
+                    "company": p.get("company", ""),
+                    "credit_score": p.get("credit_score", ""),
+                    "credit_score_date": p.get("credit_score_date", ""),
+                    "net_worth": p.get("net_worth", ""),
+                    "liquid_assets": p.get("liquid_assets", ""),
+                    "sreo_property_count": p.get("sreo_property_count", ""),
+                    "sreo_total_value": p.get("sreo_total_value", ""),
+                })
+
+        # Equity partner
+        out["equity_partner"] = {"name": "", "description": "", "partnership_history": ""}
+
+        # Income statement
+        out["financial_information"] = {
+            "updated_income_statement": {
+                "effective_gross_income": "",
+                "total_operating_expenses": "",
+                "expense_ratio": "",
+                "noi": "",
+            }
+        }
+
         # Debug logging for empty values
         print("=== Transform Output Debug ===")
         print(f"sponsor_table rows: {len(out.get('sponsor_table', []))}")
