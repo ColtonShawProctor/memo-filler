@@ -1892,25 +1892,47 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
         if section_name not in flat and section_name in sections:
             flat[section_name] = sections[section_name]
     # Handle foreclosure_analysis specially to ensure default_interest_scenario has assumptions
-    if "foreclosure_analysis" not in flat and "foreclosure_analysis" in sections:
+    # Helper function to ensure scenario structure
+    def ensure_scenario_has_assumptions(scenario):
+        if scenario is None or not isinstance(scenario, dict):
+            return {"rows": [], "assumptions": {}, "metrics": {}}
+        if "assumptions" not in scenario:
+            scenario["assumptions"] = {}
+        if "metrics" not in scenario:
+            scenario["metrics"] = {}
+        if "rows" not in scenario:
+            scenario["rows"] = []
+        return scenario
+    
+    # ALWAYS ensure foreclosure_analysis has proper structure (it might already be in flat from transform)
+    fa = None
+    if "foreclosure_analysis" in flat:
+        fa = flat["foreclosure_analysis"]
+    elif "foreclosure_analysis" in sections:
         fa = sections["foreclosure_analysis"]
-        # Ensure default_interest_scenario exists with assumptions
-        if isinstance(fa, dict):
-            if "default_interest_scenario" not in fa or fa.get("default_interest_scenario") is None:
-                fa["default_interest_scenario"] = {"rows": [], "assumptions": {}, "metrics": {}}
-            elif isinstance(fa.get("default_interest_scenario"), dict):
-                if "assumptions" not in fa["default_interest_scenario"]:
-                    fa["default_interest_scenario"]["assumptions"] = {}
-                if "metrics" not in fa["default_interest_scenario"]:
-                    fa["default_interest_scenario"]["metrics"] = {}
-            if "note_interest_scenario" not in fa or fa.get("note_interest_scenario") is None:
-                fa["note_interest_scenario"] = {"rows": [], "assumptions": {}, "metrics": {}}
-            elif isinstance(fa.get("note_interest_scenario"), dict):
-                if "assumptions" not in fa["note_interest_scenario"]:
-                    fa["note_interest_scenario"]["assumptions"] = {}
-                if "metrics" not in fa["note_interest_scenario"]:
-                    fa["note_interest_scenario"]["metrics"] = {}
-        flat["foreclosure_analysis"] = fa
+    
+    # Ensure it's a dict and has required structure
+    if fa is None or not isinstance(fa, dict):
+        fa = {}
+    
+    # Ensure default_interest_scenario exists with assumptions (CRITICAL - template accesses this)
+    fa["default_interest_scenario"] = ensure_scenario_has_assumptions(fa.get("default_interest_scenario"))
+    fa["note_interest_scenario"] = ensure_scenario_has_assumptions(fa.get("note_interest_scenario"))
+    
+    # Also ensure scenario_default_rate and scenario_note_rate have assumptions (for backward compatibility)
+    if "scenario_default_rate" in fa:
+        fa["scenario_default_rate"] = ensure_scenario_has_assumptions(fa["scenario_default_rate"])
+    else:
+        # If scenario_default_rate doesn't exist, use default_interest_scenario
+        fa["scenario_default_rate"] = fa["default_interest_scenario"]
+    if "scenario_note_rate" in fa:
+        fa["scenario_note_rate"] = ensure_scenario_has_assumptions(fa["scenario_note_rate"])
+    else:
+        # If scenario_note_rate doesn't exist, use note_interest_scenario
+        fa["scenario_note_rate"] = fa["note_interest_scenario"]
+    
+    # ALWAYS set in flat (even if it was already there, we've now ensured structure)
+    flat["foreclosure_analysis"] = fa
     if "location_overview" not in flat and "location" in sections:
         flat["location_overview"] = sections["location"]
     if "market_overview" not in flat and "market" in sections:
@@ -2024,7 +2046,13 @@ class _DictWithItemsList:
     def __getattr__(self, k):
         if k == "items":
             return self._d["items"]
-        return self._d.get(k)
+        val = self._d.get(k)
+        # CRITICAL: Ensure default_interest_scenario and note_interest_scenario are never None
+        # Template accesses foreclosure_analysis.default_interest_scenario.assumptions
+        if k in ("default_interest_scenario", "note_interest_scenario") and (val is None or not isinstance(val, dict)):
+            # Return a safe default structure
+            return {"rows": [], "assumptions": {}, "metrics": {}}
+        return val
 
     def __contains__(self, k):
         return k in self._d
@@ -2072,6 +2100,33 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
     for k, v in list(context.items()):
         if isinstance(v, dict) and not hasattr(v, "_d"):
             context[k] = _DictWithItemsList(v)
+    
+    # CRITICAL: Ensure foreclosure_analysis.default_interest_scenario always has assumptions
+    # This must happen AFTER wrapping, because the template accesses it via attribute notation
+    if "foreclosure_analysis" in context:
+        fa = context.get("foreclosure_analysis")
+        if hasattr(fa, "_d"):  # It's wrapped
+            fa_dict = fa._d
+        elif isinstance(fa, dict):
+            fa_dict = fa
+        else:
+            fa_dict = {}
+        
+        # Ensure default_interest_scenario exists and has assumptions
+        if "default_interest_scenario" not in fa_dict or fa_dict.get("default_interest_scenario") is None:
+            fa_dict["default_interest_scenario"] = {"rows": [], "assumptions": {}, "metrics": {}}
+        elif isinstance(fa_dict.get("default_interest_scenario"), dict):
+            dis = fa_dict["default_interest_scenario"]
+            if "assumptions" not in dis:
+                dis["assumptions"] = {}
+            if "metrics" not in dis:
+                dis["metrics"] = {}
+        
+        # Re-wrap if needed
+        if hasattr(fa, "_d"):
+            fa._d = fa_dict
+        else:
+            context["foreclosure_analysis"] = _DictWithItemsList(fa_dict)
     if "sponsors" in context and not isinstance(context["sponsors"], list):
         v = context["sponsors"]
         context["sponsors"] = list(v.values()) if isinstance(v, dict) else (list(v) if hasattr(v, "__iter__") and not isinstance(v, str) else [])
