@@ -719,6 +719,18 @@ class DealInputToSchemaMapper:
             if not (self._narratives.get("property_overview") or "").strip() or (self._narratives.get("property_overview") or "").strip() == "None":
                 self._narratives["property_overview"] = placeholders.get("property_description") or placeholders.get("property_overview", "") or ""
 
+    def _parse_currency_to_num(self, val: Any) -> float:
+        """Parse currency string or number to float for summing. Returns 0 if not parseable."""
+        if val is None:
+            return 0.0
+        if isinstance(val, (int, float)):
+            return float(val)
+        if isinstance(val, str):
+            match = re.search(r'\$?([\d,]+(?:\.\d+)?)', val)
+            if match:
+                return float(match.group(1).replace(",", ""))
+        return 0.0
+
     def _fmt_currency(self, val: Any) -> str:
         if val is None:
             return "N/A"
@@ -940,13 +952,16 @@ class DealInputToSchemaMapper:
         principals = (self._sponsor.get("principals") or [])
         sponsors = []
         for name in (guarantors.get("names") or []):
+            cash = guarantors.get("combined_cash_position")
+            sec = guarantors.get("combined_securities_holdings")
+            liquidity_num = self._parse_currency_to_num(cash) + self._parse_currency_to_num(sec)
             sponsors.append({
                 "name": name,
                 "total_assets": None,
                 "net_worth": guarantors.get("combined_net_worth"),
-                "liquidity": (guarantors.get("combined_cash_position") or 0) + (guarantors.get("combined_securities_holdings") or 0),
-                "cash": guarantors.get("combined_cash_position"),
-                "securities": guarantors.get("combined_securities_holdings"),
+                "liquidity": liquidity_num if liquidity_num else (cash or sec),  # keep display string if no numeric sum
+                "cash": cash,
+                "securities": sec,
             })
         if not sponsors and principals:
             for p in principals:
@@ -961,8 +976,8 @@ class DealInputToSchemaMapper:
                 nw = fp.get("net_worth")
                 liq = fp.get("liquid_assets")
                 sponsors.append({"name": name, "total_assets": None, "net_worth": nw, "liquidity": liq, "cash": liq, "securities": None})
-        combined_nw = sum((s.get("net_worth") or 0) for s in sponsors)
-        combined_liq = sum((s.get("liquidity") or 0) for s in sponsors)
+        combined_nw = sum(self._parse_currency_to_num(s.get("net_worth")) for s in sponsors)
+        combined_liq = sum(self._parse_currency_to_num(s.get("liquidity")) for s in sponsors)
         financial_summary = [
             {"label": "COMBINED NET WORTH", "value": self._fmt_currency(guarantors.get("combined_net_worth") or combined_nw)},
             {"label": "COMBINED LIQUIDITY", "value": self._fmt_currency(combined_liq)},
