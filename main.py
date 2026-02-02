@@ -84,6 +84,21 @@ def escape_jinja_syntax(obj):
     return obj
 
 
+def _coerce_number(value: Any) -> float:
+    """Coerce API/JSON value to float for arithmetic. Strings like '$1,000' or '1.5' become numbers."""
+    if value is None:
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        s = value.replace("$", "").replace(",", "").strip()
+        try:
+            return float(s)
+        except ValueError:
+            return 0.0
+    return 0.0
+
+
 # =============================================================================
 # Layer 2 to Schema Mapper (Embedded)
 # =============================================================================
@@ -413,7 +428,7 @@ class Layer2ToSchemaMapper:
 
             net_worth = liabilities_section.get('net_worth', 0)
             if not net_worth and total_assets:
-                net_worth = total_assets - (total_liabilities or 0)
+                net_worth = _coerce_number(total_assets) - _coerce_number(total_liabilities)
 
             # Extract liquidity
             cash = assets.get('cash_and_cash_equivalents', 0)
@@ -430,7 +445,7 @@ class Layer2ToSchemaMapper:
                         securities = item.get('value', 0)
                         break
 
-            liquidity = (cash or 0) + (securities or 0)
+            liquidity = _coerce_number(cash) + _coerce_number(securities)
 
             if total_assets or net_worth:
                 sponsors.append({
@@ -461,12 +476,12 @@ class Layer2ToSchemaMapper:
                         sponsors.append({"name": name, "total_assets": None, "net_worth": None, "liquidity": None})
 
                     financial_summary.append({"label": "Combined Net Worth (Guarantors)", "value": self._format_currency(combined_nw)})
-                    financial_summary.append({"label": "Combined Liquidity", "value": self._format_currency((combined_cash or 0) + (combined_securities or 0))})
+                    financial_summary.append({"label": "Combined Liquidity", "value": self._format_currency(_coerce_number(combined_cash) + _coerce_number(combined_securities))})
                     break
 
         # Calculate combined totals
-        combined_net_worth = sum(s.get('net_worth', 0) or 0 for s in sponsors)
-        combined_liquidity = sum(s.get('liquidity', 0) or 0 for s in sponsors)
+        combined_net_worth = sum(_coerce_number(s.get('net_worth')) for s in sponsors)
+        combined_liquidity = sum(_coerce_number(s.get('liquidity')) for s in sponsors)
 
         if sponsors and combined_net_worth > 0:
             financial_summary.insert(0, {"label": "COMBINED NET WORTH", "value": self._format_currency(combined_net_worth)})
@@ -944,7 +959,7 @@ class DealInputToSchemaMapper:
                 "name": name,
                 "total_assets": None,
                 "net_worth": guarantors.get("combined_net_worth"),
-                "liquidity": (guarantors.get("combined_cash_position") or 0) + (guarantors.get("combined_securities_holdings") or 0),
+                "liquidity": _coerce_number(guarantors.get("combined_cash_position")) + _coerce_number(guarantors.get("combined_securities_holdings")),
                 "cash": guarantors.get("combined_cash_position"),
                 "securities": guarantors.get("combined_securities_holdings"),
             })
@@ -961,8 +976,8 @@ class DealInputToSchemaMapper:
                 nw = fp.get("net_worth")
                 liq = fp.get("liquid_assets")
                 sponsors.append({"name": name, "total_assets": None, "net_worth": nw, "liquidity": liq, "cash": liq, "securities": None})
-        combined_nw = sum((s.get("net_worth") or 0) for s in sponsors)
-        combined_liq = sum((s.get("liquidity") or 0) for s in sponsors)
+        combined_nw = sum(_coerce_number(s.get("net_worth")) for s in sponsors)
+        combined_liq = sum(_coerce_number(s.get("liquidity")) for s in sponsors)
         financial_summary = [
             {"label": "COMBINED NET WORTH", "value": self._fmt_currency(guarantors.get("combined_net_worth") or combined_nw)},
             {"label": "COMBINED LIQUIDITY", "value": self._fmt_currency(combined_liq)},
