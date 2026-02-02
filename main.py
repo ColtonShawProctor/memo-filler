@@ -1657,8 +1657,29 @@ TEMPLATE_ALIASES = {
 
 def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
     """Flatten schema so template can use top-level vars like deal_facts, loan_terms, leverage, narrative."""
+    print("\n" + "="*80)
+    print("FLATTEN_SCHEMA_FOR_TEMPLATE - START")
+    print("="*80)
+    
+    # Log incoming critical keys
+    critical_keys = ("leverage", "deal_facts", "loan_terms", "leverage_raw", "deal_facts_raw", "loan_terms_raw")
+    print("\n[INPUT] Critical keys in incoming data:")
+    for key in critical_keys:
+        if key in data:
+            val = data[key]
+            val_type = type(val).__name__
+            if val is None:
+                print(f"  {key}: None (WARNING: will cause template errors!)")
+            elif isinstance(val, dict):
+                print(f"  {key}: dict with {len(val)} keys: {list(val.keys())[:5]}{'...' if len(val) > 5 else ''}")
+            else:
+                print(f"  {key}: {val_type}")
+        else:
+            print(f"  {key}: NOT PRESENT")
+    
     flat = dict(data)
     sections = flat.pop("sections", None) or {}
+    print(f"\n[INFO] Sections found: {list(sections.keys())}")
     for _section_name, section_data in sections.items():
         if isinstance(section_data, dict):
             for k, v in section_data.items():
@@ -1783,12 +1804,24 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
                     flat[k] = v
     # CRITICAL: Template uses {{ deal_facts.property_type }}, {{ leverage.fb_ltc_at_closing }}, {{ closing_disbursement.payoff_existing_debt }}, etc.
     # These need to be DICTS, not arrays. Override with raw versions so direct property access works.
+    print("\n[RAW OVERRIDE] Applying _raw overrides for template compatibility:")
     if "deal_facts_raw" in flat:
-        flat["deal_facts"] = flat["deal_facts_raw"] or {}
+        old_val = flat.get("deal_facts")
+        new_val = flat["deal_facts_raw"] or {}
+        print(f"  deal_facts: {type(old_val).__name__ if old_val else 'None'} -> deal_facts_raw ({type(new_val).__name__}, {len(new_val) if isinstance(new_val, dict) else 0} keys)")
+        flat["deal_facts"] = new_val
     if "leverage_raw" in flat:
-        flat["leverage"] = flat["leverage_raw"] or {}
+        old_val = flat.get("leverage")
+        new_val = flat["leverage_raw"] or {}
+        print(f"  leverage: {type(old_val).__name__ if old_val else 'None'} -> leverage_raw ({type(new_val).__name__}, {len(new_val) if isinstance(new_val, dict) else 0} keys)")
+        if isinstance(new_val, dict):
+            print(f"    leverage keys: {list(new_val.keys())[:8]}{'...' if len(new_val) > 8 else ''}")
+        flat["leverage"] = new_val
     if "loan_terms_raw" in flat:
-        flat["loan_terms"] = flat["loan_terms_raw"] or {}
+        old_val = flat.get("loan_terms")
+        new_val = flat["loan_terms_raw"] or {}
+        print(f"  loan_terms: {type(old_val).__name__ if old_val else 'None'} -> loan_terms_raw ({type(new_val).__name__}, {len(new_val) if isinstance(new_val, dict) else 0} keys)")
+        flat["loan_terms"] = new_val
     # Normalize interest_rate so {{ loan_terms.interest_rate }} renders as text (Layer 3 may send a dict with description/default_rate)
     if "loan_terms" in flat and isinstance(flat["loan_terms"], dict):
         ir = flat["loan_terms"].get("interest_rate")
@@ -1814,9 +1847,36 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
                 flat["active_litigation"]["narrative"] = "No active litigation."
     # CRITICAL: Ensure critical keys are never None (defensive against missing or null payloads)
     # This prevents "'None' has no attribute 'ltpp'" and similar template rendering errors
+    print("\n[DEFENSIVE CHECK] Ensuring critical keys are not None:")
     for critical_key in ("leverage", "deal_facts", "loan_terms"):
-        if critical_key not in flat or flat[critical_key] is None:
+        if critical_key not in flat:
+            print(f"  {critical_key}: NOT PRESENT -> setting to {{}}")
             flat[critical_key] = {}
+        elif flat[critical_key] is None:
+            print(f"  {critical_key}: None -> setting to {{}}")
+            flat[critical_key] = {}
+        else:
+            val = flat[critical_key]
+            if isinstance(val, dict):
+                print(f"  {critical_key}: OK (dict with {len(val)} keys)")
+            else:
+                print(f"  {critical_key}: OK ({type(val).__name__})")
+    
+    # Log final state of critical keys
+    print("\n[OUTPUT] Final state of critical keys:")
+    for key in ("leverage", "deal_facts", "loan_terms"):
+        val = flat.get(key)
+        if val is None:
+            print(f"  {key}: None (ERROR: should have been fixed!)")
+        elif isinstance(val, dict):
+            sample_keys = list(val.keys())[:8]
+            print(f"  {key}: dict with keys: {sample_keys}{'...' if len(val) > 8 else ''}")
+        else:
+            print(f"  {key}: {type(val).__name__}")
+    
+    print("\n" + "="*80)
+    print("FLATTEN_SCHEMA_FOR_TEMPLATE - END")
+    print("="*80 + "\n")
     return flat
 
 
@@ -1877,15 +1937,22 @@ def _ensure_items_on_dicts(obj: Any, seen: Optional[set] = None, root: bool = Tr
 
 
 def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str, str]) -> bytes:
+    print("\n" + "#"*80)
+    print("FILL_TEMPLATE - START")
+    print("#"*80)
+    
     template_stream = BytesIO(template_bytes)
     doc = DocxTemplate(template_stream)
 
     inline_images = prepare_images_for_template(doc, images)
+    print(f"\n[INFO] Prepared {len(inline_images)} inline images")
+    
     # Flatten sections into root so template placeholders like {{ deal_facts }} work
     flat_data = flatten_schema_for_template(data)
     # Escape any Jinja-like syntax in LLM-generated text to prevent template errors
     flat_data = escape_jinja_syntax(flat_data)
     context = {**flat_data, **inline_images}
+    print(f"\n[INFO] Context created with {len(context)} top-level keys")
     if "images" not in context:
         context["images"] = []
     _ensure_items_on_dicts(context)
@@ -1895,11 +1962,26 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
     
     # CRITICAL: Ensure leverage, deal_facts, loan_terms are never None
     # Template accesses leverage.ltpp, deal_facts.property_type, loan_terms.interest_rate, etc.
+    print("\n[FILL_TEMPLATE] Critical key safeguards:")
     for critical_key in ("leverage", "deal_facts", "loan_terms"):
-        if critical_key not in context or context.get(critical_key) is None:
+        val = context.get(critical_key)
+        if critical_key not in context:
+            print(f"  {critical_key}: NOT IN CONTEXT -> wrapping empty dict")
             context[critical_key] = _DictWithItemsList({})
-        elif hasattr(context.get(critical_key), "_d") and context[critical_key]._d is None:
+        elif val is None:
+            print(f"  {critical_key}: None -> wrapping empty dict")
             context[critical_key] = _DictWithItemsList({})
+        elif hasattr(val, "_d") and val._d is None:
+            print(f"  {critical_key}: _DictWithItemsList with None _d -> wrapping empty dict")
+            context[critical_key] = _DictWithItemsList({})
+        else:
+            if hasattr(val, "_d"):
+                inner_keys = list(val._d.keys())[:5] if val._d else []
+                print(f"  {critical_key}: OK (_DictWithItemsList with keys: {inner_keys}{'...' if val._d and len(val._d) > 5 else ''})")
+            elif isinstance(val, dict):
+                print(f"  {critical_key}: OK (dict with {len(val)} keys)")
+            else:
+                print(f"  {critical_key}: OK ({type(val).__name__})")
     
     # CRITICAL: Ensure foreclosure_analysis.default_interest_scenario always has assumptions
     # This must happen AFTER wrapping, because the template accesses it via attribute notation
@@ -1936,14 +2018,43 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
             if k in li and li[k] is not None and not isinstance(li[k], list):
                 li[k] = []
 
+    # Final verification before rendering
+    print("\n[PRE-RENDER] Final verification of critical keys:")
+    for critical_key in ("leverage", "deal_facts", "loan_terms"):
+        val = context.get(critical_key)
+        if val is None:
+            print(f"  ERROR: {critical_key} is still None!")
+        elif hasattr(val, "_d"):
+            inner = val._d
+            if inner is None:
+                print(f"  ERROR: {critical_key}._d is None!")
+            else:
+                sample = {k: type(v).__name__ for k, v in list(inner.items())[:5]}
+                print(f"  {critical_key}: {sample}{'...' if len(inner) > 5 else ''}")
+        elif isinstance(val, dict):
+            sample = {k: type(v).__name__ for k, v in list(val.items())[:5]}
+            print(f"  {critical_key}: {sample}{'...' if len(val) > 5 else ''}")
+        else:
+            print(f"  {critical_key}: {type(val).__name__} = {str(val)[:100]}")
+    
+    print("\n[RENDER] Calling doc.render()...")
+    
     try:
         doc.render(context)
+        print("[RENDER] SUCCESS - template rendered without errors")
     except Exception as e:
+        print(f"[RENDER] FAILED - {type(e).__name__}: {str(e)}")
+        print(f"[DEBUG] Context keys at failure: {list(context.keys())}")
         raise HTTPException(status_code=400, detail=f"Template rendering failed: {str(e)}")
 
     output = BytesIO()
     doc.save(output)
     output.seek(0)
+    
+    print("\n" + "#"*80)
+    print("FILL_TEMPLATE - END (SUCCESS)")
+    print("#"*80 + "\n")
+    
     return output.getvalue()
 
 
