@@ -1782,11 +1782,11 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
     # CRITICAL: Template uses {{ deal_facts.property_type }}, {{ leverage.fb_ltc_at_closing }}, {{ closing_disbursement.payoff_existing_debt }}, etc.
     # These need to be DICTS, not arrays. Override with raw versions so direct property access works.
     if "deal_facts_raw" in flat:
-        flat["deal_facts"] = flat["deal_facts_raw"]
+        flat["deal_facts"] = flat["deal_facts_raw"] or {}
     if "leverage_raw" in flat:
-        flat["leverage"] = flat["leverage_raw"]
+        flat["leverage"] = flat["leverage_raw"] or {}
     if "loan_terms_raw" in flat:
-        flat["loan_terms"] = flat["loan_terms_raw"]
+        flat["loan_terms"] = flat["loan_terms_raw"] or {}
     # Normalize interest_rate so {{ loan_terms.interest_rate }} renders as text (Layer 3 may send a dict with description/default_rate)
     if "loan_terms" in flat and isinstance(flat["loan_terms"], dict):
         ir = flat["loan_terms"].get("interest_rate")
