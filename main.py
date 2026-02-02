@@ -1350,6 +1350,7 @@ class DealInputToSchemaMapper:
         # (e.g. {{ deal_facts_raw.property_type }} or {{ property_type }})
         out["deal_facts_raw"] = self._deal_facts
         out["leverage_raw"] = self._leverage
+        out["leverage"] = self._leverage or {}  # Template uses {{ leverage.ltpp }}, {{ leverage.ltc_at_closing }}, etc.
         out["loan_terms_raw"] = dict(self._loan_terms) if self._loan_terms else {}
         out["financial_information"] = dict(self._financial_info) if self._financial_info else {}
         # Default missing loan_terms fields so template never shows blank (Layer 3 may not send all keys)
