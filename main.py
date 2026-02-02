@@ -1267,7 +1267,7 @@ class DealInputToSchemaMapper:
         out["disbursement_rows"] = self._build_disbursement_rows()
         out["closing_disbursement"] = {k: self._str_or_empty(v) for k, v in cd.items()}
 
-        for key in ("rent_roll", "construction_budget", "comps", "redevelopment"):
+        for key in ("rent_roll", "construction_budget", "comps", "redevelopment", "financial_information"):
             out[key] = self.deal.get(key) if self.deal.get(key) is not None else {}
 
         # Due diligence: explicit fields for template, empty string instead of None
