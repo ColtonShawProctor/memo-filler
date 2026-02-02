@@ -1268,11 +1268,10 @@ class DealInputToSchemaMapper:
             },
         }
         li = self.deal.get("loan_issues") or {}
-        if li:
-            out["loan_issues"] = {
-                "income_producing": li.get("income_producing") if isinstance(li.get("income_producing"), list) else (li.get("income_producing") or []),
-                "development": li.get("development") if isinstance(li.get("development"), list) else (li.get("development") or []),
-            }
+        out["loan_issues"] = {
+            "income_producing": li.get("income_producing") if isinstance(li.get("income_producing"), list) else (li.get("income_producing") or []),
+            "development": li.get("development") if isinstance(li.get("development"), list) else (li.get("development") or []),
+        }
         out["loan_issues_income_producing"] = li.get("income_producing") if isinstance(li.get("income_producing"), list) else []
         out["loan_issues_development"] = li.get("development") if isinstance(li.get("development"), list) else []
         out["loan_issues_disclosure"] = li.get("disclosure_statement") or ""
@@ -1355,11 +1354,16 @@ class DealInputToSchemaMapper:
         # Clean display values for Deal Facts (not full paragraphs)
         lt = self._loan_terms or {}
         interest_rate_raw = lt.get("interest_rate") or self._deal_facts.get("interest_rate") or ""
+        # Handle dict format: {"description": "SOFR + 2.50%", ...}
+        if isinstance(interest_rate_raw, dict):
+            interest_rate_raw = interest_rate_raw.get("description") or ""
         if isinstance(interest_rate_raw, str) and len(interest_rate_raw) > 50:
             match = re.search(r'SOFR\s*\+\s*\d+|[\d.]+%', interest_rate_raw)
             out["interest_rate_display"] = match.group(0) if match else "See Loan Terms"
+        elif isinstance(interest_rate_raw, str):
+            out["interest_rate_display"] = interest_rate_raw or "See Loan Terms"
         else:
-            out["interest_rate_display"] = interest_rate_raw or ""
+            out["interest_rate_display"] = "See Loan Terms"
 
         orig_fee_raw = lt.get("origination_fee") or ""
         if isinstance(orig_fee_raw, str) and len(orig_fee_raw) > 20:
@@ -1374,6 +1378,111 @@ class DealInputToSchemaMapper:
             out["exit_fee_display"] = match.group(0) if match else "See Loan Terms"
         else:
             out["exit_fee_display"] = exit_fee_raw or ""
+
+        # Add top-level aliases for section variables (template expects flattened root access)
+        sections = out.get("sections", {})
+        if "transaction_overview" in sections:
+            out["transaction_overview"] = sections["transaction_overview"]
+        if "loan_terms" in sections:
+            out["loan_terms"] = sections["loan_terms"]
+        if "sources_and_uses" in sections:
+            out["sources_and_uses"] = sections["sources_and_uses"]
+        if "sponsorship" in sections:
+            out["sponsor"] = sections["sponsorship"]
+        if "property" in sections:
+            out["property"] = sections["property"]
+            out["property_overview"] = sections["property"]
+            prop_narrative = sections["property"].get("description_narrative") or sections["property"].get("narrative") or ""
+            out["property_overview_narrative"] = prop_narrative
+        if "location" in sections:
+            out["location"] = sections["location"]
+            out["location_overview"] = sections["location"]
+        if "market" in sections:
+            out["market"] = sections["market"]
+            out["market_overview"] = sections["market"]
+        if "risks_and_mitigants" in sections:
+            out["risks_and_mitigants"] = sections["risks_and_mitigants"]
+        if "validation_flags" in sections:
+            out["validation_flags"] = sections["validation_flags"]
+        if "third_party_reports" in sections:
+            out["third_party_reports"] = sections["third_party_reports"]
+        if "foreclosure_analysis" in sections:
+            out["foreclosure_analysis"] = sections["foreclosure_analysis"]
+        if "zoning_entitlements" in sections:
+            out["zoning_entitlements"] = sections["zoning_entitlements"]
+        
+        # Add deal_facts and leverage as top-level dicts
+        out["deal_facts"] = dict(self._deal_facts) if self._deal_facts else {}
+        out["leverage"] = dict(self._leverage) if self._leverage else {}
+        
+        # loan_issues already added above, ensure it's always present
+        if "loan_issues" not in out:
+            out["loan_issues"] = {"income_producing": [], "development": []}
+        
+        # Add financial_info alias (template uses both financial_info and financial_information)
+        if "financial_information" in out:
+            out["financial_info"] = out["financial_information"]
+        elif self._financial_info:
+            out["financial_info"] = dict(self._financial_info)
+        
+        # Add guarantor_financials (from sponsorship financial_summary)
+        if "sponsorship" in sections:
+            sponsorship = sections["sponsorship"]
+            out["guarantor_financials"] = sponsorship.get("financial_summary", [])
+        else:
+            out["guarantor_financials"] = []
+        
+        # Add images placeholder (will be overridden by actual images in fill_template)
+        out["images"] = {}
+        
+        # Add active_litigation as top-level (template expects it)
+        out["active_litigation"] = dict(self._active_litigation) if self._active_litigation else {}
+        
+        # Add closing_funding_and_reserves (alias for closing_disbursement with narrative)
+        closing_funding = dict(out.get("closing_disbursement", {}))
+        closing_narrative = self._narratives.get("closing_funding_narrative") or ""
+        if closing_narrative:
+            closing_funding["narrative"] = closing_narrative
+        out["closing_funding_and_reserves"] = closing_funding
+        
+        # Add sponsor totals from sponsor_table
+        sponsor_table = out.get("sponsor_table", [])
+        if sponsor_table:
+            total_row = next((r for r in sponsor_table if r.get("entity", "").upper() == "TOTAL"), {})
+            out["sponsor_total_profit_pct"] = total_row.get("profit_pct", "")
+            out["sponsor_total_membership"] = total_row.get("membership_interest", "")
+            out["sponsor_total_capital_pct"] = total_row.get("capital_pct", "")
+        else:
+            out["sponsor_total_profit_pct"] = ""
+            out["sponsor_total_membership"] = ""
+            out["sponsor_total_capital_pct"] = ""
+        
+        # Add credit_report (if present in deal)
+        out["credit_report"] = self.deal.get("credit_report") or {}
+        
+        # Add principal_financials (from sponsors)
+        sponsors = out.get("sponsors", [])
+        principal_financials = []
+        for sponsor in sponsors:
+            if isinstance(sponsor, dict):
+                principal_financials.append({
+                    "name": sponsor.get("name", ""),
+                    "net_worth": sponsor.get("net_worth"),
+                    "liquidity": sponsor.get("liquidity"),
+                })
+        out["principal_financials"] = principal_financials
+        
+        # Add default_interest_scenario (from foreclosure_analysis if present)
+        if "foreclosure_analysis" in sections:
+            fa = sections["foreclosure_analysis"]
+            if "scenario_default_rate" in fa:
+                out["default_interest_scenario"] = fa["scenario_default_rate"]
+            elif "default_interest_scenario" in fa:
+                out["default_interest_scenario"] = fa["default_interest_scenario"]
+            else:
+                out["default_interest_scenario"] = {"rows": []}
+        else:
+            out["default_interest_scenario"] = {"rows": []}
 
         if not isinstance(cd, dict):
             cd = {}
@@ -1437,6 +1546,7 @@ class DealInputToSchemaMapper:
         out["deal_facts_raw"] = self._deal_facts
         out["leverage_raw"] = self._leverage
         out["loan_terms_raw"] = dict(self._loan_terms) if self._loan_terms else {}
+        out["financial_information"] = dict(self._financial_info) if self._financial_info else {}
         # Default missing loan_terms fields so template never shows blank (Layer 3 may not send all keys)
         for key in ("origination_fee", "exit_fee", "prepayment", "guaranty", "collateral"):
             val = out["loan_terms_raw"].get(key)
@@ -1449,6 +1559,9 @@ class DealInputToSchemaMapper:
             if key not in out:
                 out[key] = val
         for key, val in (self._loan_terms or {}).items():
+            if key not in out:
+                out[key] = val
+        for key, val in (self._financial_info or {}).items():
             if key not in out:
                 out[key] = val
 

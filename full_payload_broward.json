@@ -1,0 +1,901 @@
+[
+  {
+    "deal_id": "broward-blvd",
+    "deal_folder": "7001 and 7007-7181 W. Broward Blvd., Plantation, FL",
+    "generated_at": "2026-02-02T03:33:36.885Z",
+    "cover": {
+      "property_address": "7001 and 7007-7181 W. Broward Blvd, Plantation, FL",
+      "credit_committee": "BW, JL, SW",
+      "underwriting_team": "AB, EO",
+      "date": "7/17/2025"
+    },
+    "property": {
+      "name": "Plantation Marketplace",
+      "address": {
+        "street": "7007 W Broward Blvd",
+        "city": "Plantation",
+        "county": "Broward County",
+        "state": "Florida",
+        "zip": "33317"
+      },
+      "property_type": "Retail (Neighborhood/Community Center)",
+      "year_built": [
+        1976,
+        1979
+      ],
+      "year_renovated": 2000,
+      "land_area_acres": 22.79,
+      "land_area_sf": 992684,
+      "building_sf": 240987,
+      "num_buildings": 4,
+      "num_stories": 1,
+      "occupancy_current": 82,
+      "occupancy_stabilized": 96,
+      "anchor_tenants": "Food Fair Wholesale Fresh Market, Amped Fitness, CVS, MD Now, Bank of America, Brick America",
+      "parking_spaces": 991,
+      "parking_ratio": 4.11,
+      "condition": "Average",
+      "parcel_numbers": "5041-03-56-0010, 5041-03-45-0010",
+      "purchase_history": {
+        "note": "The current owners purchased the subject in 2022, via two transactions, for a combined purchase price.",
+        "combined_purchase_price": 45775000,
+        "price_per_sf": 189.95
+      }
+    },
+    "deal_facts": {
+      "property_type": "Retail",
+      "loan_purpose": "Refinance/Pre-Development",
+      "loan_amount": "$27,000,000",
+      "source": "Thomas D Wood",
+      "term": "18 Months",
+      "lien": "1st Mortgage",
+      "minimum_interest": "9 Months",
+      "extension_option": "1x 6-month (1% fee)"
+    },
+    "loan_terms": {
+      "term": "18 Months",
+      "interest_rate": {
+        "description": "The rate of interest charged shall be equal to the greater of: (i) the 1-Month CME SOFR rate (the \"SOFR Rate\") plus six hundred seventy (670) basis points per annum (with a SOFR floor of 4.30%), or (ii) eleven percent (11.00%) per annum, based upon a 360-day year for the actual number of days outstanding.",
+        "default_rate": "The default interest rate on the Loan against the Property shall be the lesser of twenty-four percent (24%) per annum or the highest legally permissible rate in the State of Florida."
+      },
+      "origination_fee": "Borrower shall pay an origination fee of one (1.00%) percent of the total Loan Amount.",
+      "exit_fee": "Borrower shall pay an exit fee of one (1.00%) percent of the total Loan Amount.",
+      "lien": "1st Mortgage",
+      "lien_position": "1st Mortgage",
+      "minimum_interest": "9 Months",
+      "extension_option": "1x 6-month (1% fee)",
+      "prepayment": "Prepayment of the Loan shall be permitted at any time, provided that the Lender shall have received to such payment date, a minimum of nine (9) months interest on the Loan on or prior to such Prepayment date, which shall not include interim interest payable at closing.",
+      "guaranty": "Guarantors shall execute a \"Bad Boy\" carveout guaranty and an interest and carry guaranty. The carry guaranty will terminate on foreclosure or an approved deed in lieu transaction, subject to satisfaction of customary conditions to be specified in the loan documents. Interest and carry expenses will continue to be funded by Lender in accordance with the budget, subject to customary limitations.",
+      "collateral": "The Loan will be secured by, among other things, a first mortgage lien and first priority security interest, as applicable, on the Borrower's fee interest in the Property, all improvements, personal property, and all leases, security deposits, rents, issues, profits, revenues and other income, deposit and cash management accounts, and reserve funds, all as more particularly described in the Loan documents, together with a pledge of 100% of the membership interests in Borrower."
+    },
+    "leverage": {
+      "fb_ltc_at_closing": "51.00%",
+      "ltc_at_maturity": "57.00%",
+      "ltv_at_closing": "37.00%",
+      "ltv_at_maturity": "42.00%",
+      "ltpp": "57.00%",
+      "debt_yield_fully_drawn": "6.81%"
+    },
+    "closing_disbursement": {
+      "payoff_existing_debt": "$24,000,000",
+      "broker_fee": "$135,000",
+      "origination_fee": "$270,000",
+      "closing_costs_title": "$175,500",
+      "lender_legal": "$75,000",
+      "borrower_legal": "$40,000",
+      "misc": "$100,000",
+      "interest_reserve": "",
+      "total_disbursements": "$24,795,500",
+      "sponsors_equity_at_closing": "$980,876",
+      "fairbridge_release_at_closing": "$23,814,624"
+    },
+    "sponsor": {
+      "name": "Steve Hudson & Charlie Ladd Jr.",
+      "table": [
+        {
+          "entity": "Foreward One Management, LLC",
+          "profit_percentage_interest": "20%",
+          "membership_interest": 200,
+          "capital_interest_amount": "",
+          "capital_interest_percentage": "",
+          "internal_split": [
+            {
+              "principal": "Charlie Ladd",
+              "share_of_interest_pct": 12
+            },
+            {
+              "principal": "Steve Hudson",
+              "share_of_interest_pct": 8
+            }
+          ]
+        },
+        {
+          "entity": "Las Olas Capital - Real Estate Fund Iv, L.P.",
+          "profit_percentage_interest": "41%",
+          "membership_interest": 410,
+          "capital_interest_amount": 10250000,
+          "capital_interest_percentage": "51.25%"
+        },
+        {
+          "entity": "Las Olas Capital - Plantation Coinvest, LLC",
+          "profit_percentage_interest": "10%",
+          "membership_interest": 100,
+          "capital_interest_amount": 2500000,
+          "capital_interest_percentage": "12.50%"
+        },
+        {
+          "entity": "Alan Miniaci Trust",
+          "profit_percentage_interest": "1%",
+          "membership_interest": 10,
+          "capital_interest_amount": 250000,
+          "capital_interest_percentage": "1.25%"
+        },
+        {
+          "entity": "Maria Miniaci Trust",
+          "profit_percentage_interest": "1%",
+          "membership_interest": 10,
+          "capital_interest_amount": 250000,
+          "capital_interest_percentage": "1.25%"
+        },
+        {
+          "entity": "Albert J Miniaci Trust",
+          "profit_percentage_interest": "10%",
+          "membership_interest": 100,
+          "capital_interest_amount": 2500000,
+          "capital_interest_percentage": "12.50%"
+        },
+        {
+          "entity": "Dominique Miniaci Trust",
+          "profit_percentage_interest": "1%",
+          "membership_interest": 10,
+          "capital_interest_amount": 250000,
+          "capital_interest_percentage": "1.25%"
+        },
+        {
+          "entity": "Alexander Miniaci Trust",
+          "profit_percentage_interest": "1%",
+          "membership_interest": 10,
+          "capital_interest_amount": 250000,
+          "capital_interest_percentage": "1.25%"
+        },
+        {
+          "entity": "Dominick F Miniaci Trust",
+          "profit_percentage_interest": "2%",
+          "membership_interest": 20,
+          "capital_interest_amount": 500000,
+          "capital_interest_percentage": "2.50%"
+        },
+        {
+          "entity": "Rose Miniaci Trust",
+          "profit_percentage_interest": "4%",
+          "membership_interest": 40,
+          "capital_interest_amount": 1000000,
+          "capital_interest_percentage": "5.00%"
+        },
+        {
+          "entity": "Robert B. Lochrie III",
+          "profit_percentage_interest": "1%",
+          "membership_interest": 10,
+          "capital_interest_amount": 250000,
+          "capital_interest_percentage": "1.25%"
+        },
+        {
+          "entity": "SWH POM, LLC",
+          "profit_percentage_interest": "8%",
+          "membership_interest": 80,
+          "capital_interest_amount": 2000000,
+          "capital_interest_percentage": "10.00%"
+        },
+        {
+          "entity": "TOTAL",
+          "profit_percentage_interest": "100%",
+          "membership_interest": 1000,
+          "capital_interest_amount": 20000000,
+          "capital_interest_percentage": "100%"
+        }
+      ],
+      "guarantors": {
+        "names": [
+          "Charles B. Ladd",
+          "Steven W. Hudson"
+        ],
+        "combined_net_worth": "$239,650,000",
+        "combined_cash_position": "$8,400,000",
+        "combined_securities_holdings": "$92,249,616"
+      },
+      "principals": [
+        {
+          "name": "Charles B. Ladd",
+          "title": "Founder and President",
+          "company": "Barron Real Estate",
+          "credit_score": 768,
+          "credit_score_date": "July 2025",
+          "net_worth": "$35,610,000",
+          "liquid_assets": "$185,000",
+          "liquid_assets_composition": "cash on hand + listed securities",
+          "sreo_property_count": 31,
+          "sreo_total_value": "$40,050,593",
+          "sreo_equity": "$33,950,000",
+          "experience": "He has over 35 years of experience in South Florida real estate development, including prior roles with Amera Companies and Symcor Properties.",
+          "notable_projects": "The Walk at Coral Springs, Victoria Park Shoppes, The Fresh Market Center, substantial footprint along Las Olas Boulevard (owns over 750 linear feet of frontage)",
+          "civic_involvement": "Downtown Development Authority, Las Olas Association"
+        },
+        {
+          "name": "Steven W. Hudson",
+          "title": "President and CEO",
+          "company": "Hudson Capital Group (HCG)",
+          "credit_score": 766,
+          "credit_score_date": "July 2025",
+          "net_worth": "$286,126,000",
+          "liquid_assets": "$100,345,488",
+          "liquid_assets_composition": "cash on hand and marketable securities, held both personally and in trust.",
+          "sreo_property_count": "23 properties where Sponsor has direct ownership and authority as managing member or general partner.",
+          "sreo_total_value": "",
+          "sreo_equity": "",
+          "experience": "Since inception, HCG has been involved in the development of over 1 million square feet of Class A office space in Fort Lauderdale, as well as 4,000 apartments and condo units in Fort Lauderdale, West Palm Beach, Pembroke Pines, Naples, Sarasota, Tampa, Orlando, and Dallas.",
+          "notable_projects": "",
+          "civic_involvement": "Vice Chairman, Florida Fish and Wildlife Conservation Commission (appointed by Governor Ron DeSantis), Member, Broward Business Council on Homelessness, Former Member, Broward County Homeless Continuum of Care Board, Chair, Broward Workshop, Executive Committee Member, The Marine Research Hub, Executive Committee Member, The Humane Society of Broward County, Appointee, Fort Lauderdale Downtown Development Authority (DDA) (2019)"
+        }
+      ]
+    },
+    "sources_and_uses": {
+      "table": {
+        "title": "Fairbridge Sources and Uses",
+        "sources": [
+          {
+            "item": "Loan",
+            "amount": 27000000,
+            "percent": "53.7%"
+          },
+          {
+            "item": "Equity Already Invested",
+            "amount": 22278153,
+            "percent": "44.3%"
+          },
+          {
+            "item": "Equity Required At Closing",
+            "amount": 980876,
+            "percent": "2.0%"
+          }
+        ],
+        "total_sources": 50259029,
+        "uses": [
+          {
+            "category": "Accretive Costs",
+            "items": [
+              {
+                "item": "Property Acquisition",
+                "amount": 45775000
+              },
+              {
+                "item": "Soft Costs Total",
+                "amount": 1238529
+              },
+              {
+                "item": "Hard Costs Total",
+                "amount": 0
+              }
+            ]
+          },
+          {
+            "category": "Financing Costs",
+            "items": [
+              {
+                "item": "Interest Reserve**",
+                "amount": 1800000,
+                "rate_pct": 11
+              }
+            ]
+          },
+          {
+            "category": "Closing Costs",
+            "items": [
+              {
+                "item": "Origination Fee",
+                "amount": 270000,
+                "rate_pct": 1
+              },
+              {
+                "item": "Broker Fee",
+                "amount": 135000,
+                "rate_pct": 0.5
+              },
+              {
+                "item": "Closing Costs (Title)*",
+                "amount": 175500,
+                "rate_pct": 0.65
+              },
+              {
+                "item": "Lender Legal*",
+                "amount": 75000
+              },
+              {
+                "item": "Borrower Legal*",
+                "amount": 40000
+              },
+              {
+                "item": "Misc*",
+                "amount": 100000
+              },
+              {
+                "item": "Dollar Tree Litigation Holdback",
+                "amount": 650000
+              }
+            ]
+          }
+        ],
+        "total_uses": 50259029,
+        "notes": [
+          "* Estimated",
+          "**FB intends to sweep all free NOI at property, which should create 18 month coverage period"
+        ]
+      },
+      "total_project_cost": "",
+      "equity_at_closing": "",
+      "equity_already_invested": ""
+    },
+    "valuation": {
+      "as_is_value": "$46,600,000",
+      "as_stabilized_value": "$51,800,000",
+      "cap_rate": "6.00%",
+      "discount_rate": "8.50%",
+      "terminal_cap_rate": "6.50%",
+      "noi": "$2,982,866",
+      "effective_gross_income": "$5,119,263",
+      "operating_expenses": "$2,136,397",
+      "expense_ratio": "41.73%",
+      "valuation_approaches": {
+        "prospective_excess_land_value": {
+          "description": "Upon Completion (Post Demolition, Assuming 577 approved units)",
+          "total_value": 29000000,
+          "per_sf": 105.67
+        },
+        "retrospective_as_is_existing_center": {
+          "date": "June 28, 2025",
+          "sales_comparison_approach": {
+            "total_value": 46000000,
+            "per_sf": 190.88
+          },
+          "income_approach": {
+            "total_value": 46600000,
+            "per_sf": 193.37
+          }
+        },
+        "prospective_as_stabilized_existing_center": {
+          "date": "June 28, 2025",
+          "sales_comparison_approach": {
+            "total_value": 51200000,
+            "per_sf": 212.46
+          },
+          "income_approach": {
+            "total_value": 51800000,
+            "per_sf": 214.95
+          }
+        }
+      },
+      "market_value_conclusions": [
+        {
+          "appraisal_premise": "Retrospective As Is (Existing Center)",
+          "interest_appraised": "Leased Fee Interest",
+          "date_of_value": "June 28, 2025",
+          "value_conclusion": 46600000
+        },
+        {
+          "appraisal_premise": "Prospective As Stabilized (Existing Center)",
+          "interest_appraised": "Leased Fee Interest",
+          "date_of_value": "June 28, 2027",
+          "value_conclusion": 51800000
+        },
+        {
+          "appraisal_premise": "Retrospective As Is (Assuming Partial Demolition/Redevelopment)",
+          "interest_appraised": "Leased Fee Interest",
+          "date_of_value": "June 28, 2025",
+          "value_conclusion": 36700000
+        },
+        {
+          "appraisal_premise": "Prospective Excess Land Value Upon Completion (Post Demolition, Assuming 577 approved units)",
+          "interest_appraised": "Fee Simple Estate",
+          "date_of_value": "December 28, 2025",
+          "value_conclusion": 29000000
+        },
+        {
+          "appraisal_premise": "Retrospective As Is Aggregate (Assuming Partial Demolition/Redevelopment)",
+          "interest_appraised": "Leased Fee Interest",
+          "date_of_value": "June 28, 2025",
+          "value_conclusion": 65275000
+        }
+      ]
+    },
+    "narratives": {
+      "transaction_overview": "Fairbridge Asset Management has been presented with an opportunity to provide a $27,000,000 commercial bridge loan to 7023 Broward LLC for the refinancing and pre-development of a strategically positioned retail property in Plantation, Florida. The transaction represents a compelling opportunity to support an experienced sponsor's value-add strategy while maintaining conservative loan-to-cost metrics on a well-located asset with significant redevelopment potential. The loan will be secured by a 240,987-square-foot neighborhood retail center situated on 22.79 acres at 7001 and 7007-7181 West Broward Boulevard, currently operating at 82% occupancy and generating approximately $1,800,000 in annual net cash flow.\n\nThe subject property consists of two parcels that the sponsor strategically assembled in 2022 for a combined acquisition cost of $45,775,000. The larger parcel at 7007-7181 West Broward Boulevard was acquired in June 2022 for $38,400,000, while the smaller parcel at 7001 West Broward Boulevard, which houses a Bank of America branch, was purchased in July 2022 for $7,475,000. The property benefits from exceptional positioning along a major arterial corridor and carries existing entitlements permitting the development of 577 multifamily rental units by right under Florida's Live Local Act. The sponsor has developed a comprehensive four-phase master plan that envisions the ultimate delivery of 1,700 residential units alongside a more focused 54,000-square-foot retail component, representing a complete transformation of the asset's highest and best use.\n\nThe sponsorship consists of 7023 Broward LLC, with guarantees provided by Steve Hudson and Charlie Ladd Jr., who collectively maintain a combined net worth of $239,650,000 and liquid assets totaling $8,400,000, along with securities holdings of $92,249,616. This financial profile substantially exceeds Fairbridge's minimum requirements of $150,000,000 in net worth and $30,000,000 in liquidity and securities, providing strong credit support for the transaction. The guarantors will provide comprehensive guarantees including bad boy carve-outs, interest coverage, and carry guarantees, ensuring alignment of interests throughout the loan term. The sponsors' substantial equity position of $21,775,000 will remain fully at risk, as no cash-out proceeds will be distributed as part of this refinancing transaction.\n\nThe proposed loan structure will utilize proceeds to retire existing debt totaling $24,000,000, consisting of a $21,000,000 loan from Amerant Bank secured by the primary retail parcel and a $3,000,000 private loan from Gaddis Capital secured by the Bank of America parcel. Additional proceeds will fund an 18-month interest reserve and cover pre-development costs necessary to advance the property's redevelopment timeline. The sponsor's exit strategy centers on the sale or joint venture of development-ready parcels to residential developers, with Phase I positioned for immediate marketing to merchant builders upon securing land use approvals. Should the preferred rezoning strategy encounter delays, the sponsor maintains the flexibility to proceed under the Live Local Act framework, which would preserve all existing tenant relationships while enabling redevelopment of currently vacant spaces. This dual-path approach provides multiple avenues for loan repayment while maximizing the property's redevelopment potential in South Florida's robust residential market.",
+      "property_overview": "Property Overview\n\nPlantation Marketplace represents a well-established neighborhood retail center strategically positioned at 7007 West Broward Boulevard in Plantation, Florida, within the heart of Broward County's thriving commercial corridor. This substantial retail complex encompasses 22.79 acres of prime commercial real estate, offering 240,987 square feet of gross leasable area across four single-story buildings that collectively create a comprehensive shopping destination serving the surrounding residential communities.\n\nThe property's physical composition reflects thoughtful development spanning multiple construction phases, with the original Bank of America branch building completed in 1976, followed by the three remaining structures in 1979. Despite the buildings' vintage, a comprehensive renovation completed in 2000 has maintained the center's competitive position in the market, resulting in an effective age of 25 years with an estimated remaining economic life of 20 years. The masonry and concrete exterior walls combined with wood and steel roof structures represent Class C construction that has proven durable and cost-effective for retail operations.\n\nThe site's rectangular configuration provides excellent visibility and accessibility, featuring substantial road frontage along three major thoroughfares. The property commands 925 feet of frontage on West Broward Boulevard, a primary east-west arterial carrying 45,000 vehicles daily, while also benefiting from 945 feet along NW 79th Avenue with 6,200 daily traffic counts and 920 feet on NW 2nd Street. This tri-corner positioning creates exceptional exposure and multiple ingress and egress points that enhance customer convenience and traffic flow throughout the center.\n\nPlantation Marketplace's tenant composition demonstrates the diversity and stability characteristic of successful neighborhood centers. The property currently operates at 82 percent occupancy with a stabilized occupancy projection of 96 percent, indicating strong market demand and limited remaining lease-up risk. The anchor tenant lineup includes Food Fair Wholesale Fresh Market occupying 43,386 square feet as the grocery anchor, providing the essential daily-needs component that drives consistent customer traffic. Amped Fitness commands 34,548 square feet, serving the growing health and wellness market segment, while CVS operates from a 10,800 square foot drugstore that complements the grocery offering.\n\nThe medical component is represented by MD Now in 5,580 square feet, capitalizing on the increasing demand for convenient healthcare services. Bank of America maintains its presence in the original 13,470 square foot building, providing essential financial services to the trade area. Brick America rounds out the anchor tenant mix, contributing to the center's diverse retail ecosystem. Beyond these major tenants, the property accommodates various service providers including daycare facilities, restaurants, and traditional in-line retail spaces totaling 51,071 square feet, creating a comprehensive one-stop shopping environment.\n\nThe center's infrastructure supports its role as a community retail hub with 991 surface parking spaces, providing a ratio of 4.11 spaces per 1,000 square feet of gross leasable area. This generous parking allocation exceeds typical requirements and ensures adequate accommodation during peak shopping periods. The level topography at street grade facilitates easy customer access and efficient loading operations for tenants.\n\nSite coverage of 24.3 percent creates a favorable land-to-building ratio of 4.12 to 1, indicating efficient use of the available acreage while maintaining adequate circulation, parking, and potential for future expansion or redevelopment. The property benefits from full utility services provided by the City of Plantation for water and sewer, Florida Power & Light for electricity, and AT&T for telecommunications, ensuring reliable infrastructure support for all tenant operations.\n\nThe current ownership acquired Plantation Marketplace in 2022 through two separate transactions totaling $45,775,000, representing $189.95 per square foot, demonstrating institutional confidence in the property's long-term value proposition. The center's location within Broward County's established retail corridor, combined with its diverse tenant mix and substantial development potential, positions it as a stable income-producing asset with opportunities for value enhancement through strategic leasing and potential redevelopment of underutilized portions of the site.\n\nProfessional property management is provided by Barron Real Estate, Inc., ensuring experienced oversight of day-to-day operations, tenant relations, and maintenance activities. The property's flood zone designation as Zone X (Shaded) indicates minimal flood risk, while the absence of significant easements, encroachments, or restrictive covenants provides operational flexibility for current and future ownership strategies.",
+      "location_overview": "LOCATION OVERVIEW\n\nRegional Market Context\n\nThe subject property is strategically positioned within Broward County, Florida, one of the most dynamic and economically robust markets in the southeastern United States. Broward County represents a mature, diversified metropolitan area that has demonstrated consistent growth patterns and economic resilience over the past decade. With a current population of approximately 1.98 million residents as of 2024, the county has experienced steady annual growth of 0.9 percent since 2010, adding over 235,000 new residents during this period. Population projections indicate continued expansion through 2029, with an anticipated total population reaching just over 2 million residents.\n\nThe regional economy exhibits strong fundamentals, supported by a diverse employment base of over 1.07 million workers and a healthy unemployment rate of 3 percent. The economic foundation rests primarily on three key industry sectors: Health Care and Social Assistance, Retail Trade, and Professional, Scientific, and Technical Services, which collectively account for 34 percent of the total workforce. This diversification provides stability and reduces vulnerability to economic fluctuations in any single sector.\n\nIncome demographics reflect the area's economic strength and growth potential. The current median household income of $80,252 significantly exceeds national averages, while the average household income of $114,978 indicates substantial purchasing power within the market. Perhaps most notably, median household income is projected to increase by 17.4 percent over the next five years, representing an annual growth rate of $2,788 per household. This income trajectory suggests robust economic expansion and enhanced consumer spending capacity.\n\nEducational attainment levels further underscore the market's quality, with 38.8 percent of residents over 24 holding college degrees, including 23.9 percent with bachelor's degrees and 14.9 percent with graduate degrees. This educated workforce supports the knowledge-based industries that drive the regional economy and contributes to higher income levels and consumer sophistication.\n\nImmediate Trade Area Demographics\n\nThe property benefits from location within an exceptionally affluent immediate trade area that demonstrates superior demographic characteristics compared to both the broader region and national averages. Within a one-mile radius, the area serves 13,232 residents across 5,329 households, representing a well-established, stable residential base.\n\nIncome levels within the immediate vicinity are particularly impressive, with median household income of $101,089 substantially exceeding the county median by 26 percent. Average household income reaches $126,022, while per capita income of $50,552 ranks among the highest in the region. These income levels indicate significant discretionary spending power and support for higher-end retail and service establishments.\n\nThe educational profile of the immediate area is exceptional, with 49.7 percent of residents holding college degrees, significantly surpassing both county and national averages. This concentration of educated professionals creates demand for sophisticated retail, dining, and service offerings while supporting premium pricing strategies.\n\nAs the trade area expands to three and five-mile radii, the demographic profile remains strong though moderating toward regional averages. The three-mile radius encompasses 164,284 residents with median household income of $72,077, while the five-mile radius includes 423,683 residents with median income of $72,311. The consistency of income levels across these broader trade areas indicates sustained purchasing power throughout the market area.\n\nSite Characteristics and Access\n\nThe subject property comprises 22.79 acres of improved land, offering exceptional visibility and access through frontage on three major roadways. The site maintains 925 feet of frontage along West Broward Boulevard, a primary east-west arterial carrying 45,000 vehicles daily, providing outstanding exposure to regional traffic patterns. Additional frontage includes 945 feet along NW 79th Avenue with 6,200 daily traffic counts and 920 feet along NW 2nd Street, creating a highly visible corner location with multiple access points.\n\nThe rectangular configuration and level topography at street grade optimize development potential and minimize site preparation costs. The substantial road frontage and corner positioning provide maximum visibility from multiple directions, essential for retail and commercial success. Traffic volumes, particularly the 45,000 daily count on West Broward Boulevard, ensure consistent exposure to potential customers and tenants.\n\nFollowing planned demolition activities, the site will offer 16.49 acres of improved land with an additional 6.3 acres of excess land, providing flexibility for phased development or future expansion. The excess land represents significant additional value and development opportunity within this prime location.\n\nInfrastructure and Utilities\n\nThe property benefits from comprehensive utility infrastructure provided by established municipal and regional providers. Water and sewer services are available through the City of Plantation, ensuring reliable capacity for commercial development. Electrical service through Florida Power & Light provides adequate power for modern commercial facilities, while telecommunications infrastructure through AT&T supports contemporary business requirements.\n\nMass transit availability through Broward County enhances accessibility for employees and customers, particularly important given the educated workforce and environmental consciousness of the trade area. The combination of excellent roadway access and public transit options maximizes the site's accessibility to the broader market.\n\nMarket Position and Outlook\n\nThe Plantation market area represents one of Broward County's most desirable commercial locations, benefiting from the intersection of high-income demographics, excellent transportation access, and established commercial activity. The combination of immediate area affluence, regional growth trends, and superior site characteristics positions this location for sustained commercial success across multiple property types and tenant categories.\n\nThe projected income growth throughout the trade area, coupled with continued population expansion and the area's established reputation, supports optimistic projections for commercial real estate performance. The site's substantial size and flexible configuration accommodate various development scenarios while the excess land provides additional value creation opportunities.",
+      "market_overview": "Market Overview\n\nThe Plantation retail market operates within a dynamic economic environment characterized by moderate growth expectations and evolving consumer patterns. According to CBRE Econometric Advisors' 2Q 2024 U.S. Quarterly Outlook, the national economic backdrop provides a foundation of cautious optimism for commercial real estate investments. While the U.S. economy demonstrated robust performance with 3.1% growth in 2023, expectations have moderated for 2024, with projected growth in the 1-2% range following Q1 GDP performance that fell short of the anticipated 2.5%. CBRE has notably abandoned its previous moderate recession forecast, suggesting greater economic stability ahead, though quarterly growth is expected to remain in the 1% range for the remainder of 2024.\n\nThe Plantation market benefits from its position within Broward County, which demonstrates steady demographic fundamentals supporting retail demand. The county's population has grown from 1.75 million in 2010 to nearly 2 million in 2024, representing a consistent 0.9% annual growth rate. While population growth is projected to slow to 0.2% annually through 2029, reaching approximately 2.01 million residents, the market's income dynamics present compelling opportunities for retail operators. The median household income of $80,252 in 2024 is projected to increase by 17.4% over the next five years to $94,190, representing an annual increase of $2,788. This income growth trajectory, combined with an average household income of $114,978, indicates strong consumer spending power within the trade area.\n\nThe immediate Plantation market area exhibits particularly attractive demographic characteristics for neighborhood and community retail centers. Within a one-mile radius, the market serves 13,232 residents across 5,329 households, with a median household income of $101,089 that significantly exceeds both county and national averages. The affluence of the immediate trade area is further evidenced by an average household income of $126,022 and per capita income of $50,552. Notably, 49.7% of residents within one mile hold college degrees, indicating a highly educated consumer base that typically supports premium retail concepts and demonstrates strong spending patterns.\n\nAs the trade area expands to three and five miles, the market captures a substantial consumer base of 164,284 and 423,683 residents respectively. While income levels moderate slightly at these broader radii, with median household incomes of approximately $72,000, the average household incomes of $96,336 and $98,169 remain well above national medians. The education levels within the expanded trade areas, with 34.7% and 32.7% college graduation rates respectively, continue to support quality retail demand.\n\nEmployment conditions within Broward County provide additional stability for retail performance. With over 1.07 million employees and a low 3% unemployment rate, the market demonstrates economic resilience. The employment base is diversified across key sectors including Healthcare and Social Assistance, Retail Trade, and Professional, Scientific, and Technical Services, which collectively represent 34% of the workforce. This diversification reduces retail market vulnerability to single-industry economic fluctuations.\n\nCurrent retail market conditions in the Plantation area reflect broader South Florida trends of steady demand supported by population growth and tourism activity. Neighborhood and community centers are experiencing particular strength as consumers increasingly value convenience and local shopping options. The post-pandemic retail landscape has favored well-located centers that serve daily needs, grocery-anchored properties, and developments that offer experiential retail components.\n\nSupply and demand dynamics in the Plantation market indicate a balanced environment with selective development activity. New retail construction has been measured, focusing primarily on redevelopment and repositioning of existing centers rather than ground-up development. This controlled supply growth, combined with steady population and income increases, supports stable occupancy levels and modest rent growth for well-positioned properties.\n\nThe market's proximity to major transportation corridors and its position within the greater Fort Lauderdale metropolitan area enhances its appeal for both national and regional retailers seeking South Florida market penetration. The combination of strong local demographics, economic stability, and strategic location creates favorable conditions for neighborhood and community retail center investments, particularly those offering modern amenities and convenient access to the area's affluent resident base.",
+      "sponsor_narrative": "SPONSOR ANALYSIS\n\nThe sponsorship for this transaction is provided by Charles B. Ladd Jr. and Steven W. Hudson, two highly experienced South Florida real estate professionals with complementary expertise and substantial financial resources. The sponsors bring together over 60 years of combined real estate experience, significant net worth totaling $321.7 million, and an extensive track record of successful commercial real estate development and investment throughout South Florida.\n\nCharles B. Ladd Jr. - Financial Profile and Experience\n\nCharles Ladd serves as Founder and President of Barron Real Estate and brings 35 years of South Florida real estate development experience. His personal financial statement dated July 1, 2025, reflects a net worth of $35.6 million with total assets of $37.1 million. His asset composition demonstrates deep real estate expertise, with $33.9 million (95% of total assets) held in partial interests in real estate equities across 31 properties. These holdings span high-quality commercial properties including Victoria Park Shoppes, The Fresh Market Center, and substantial Las Olas Boulevard frontage totaling over 750 linear feet.\n\nLadd's liquidity position shows $185,000 in cash and marketable securities, which while modest relative to his net worth, is supplemented by his diversified real estate portfolio that generates substantial annual income. His 2025 income totaled $632,700, comprising $157,700 in salary, $75,000 in bonuses, and $400,000 in asset management fees. His credit profile is strong with a score of 768 as of July 2025. Personal liabilities are minimal at $1.5 million, primarily consisting of a $1.46 million note to Gaddis Capital Corp secured by his homestead property.\n\nLadd's real estate portfolio demonstrates sophisticated investment strategy and market knowledge. Notable holdings include significant ownership positions in London Associates (Victoria Park Shoppes valued at $40.2 million), Flagler Sixth LLC ($55 million), and multiple Las Olas Boulevard properties. His Schedule of Contingent Liabilities reveals guarantees on $106.8 million in project debt across 20 properties, indicating his active involvement in substantial real estate ventures and lenders' confidence in his creditworthiness.\n\nSteven W. Hudson - Financial Strength and Leadership\n\nSteven Hudson serves as President and CEO of Hudson Capital Group and represents the stronger financial partner with a net worth of $286.1 million as of December 31, 2023. His financial profile reflects exceptional liquidity with $100.3 million in cash and marketable securities, far exceeding typical sponsor requirements. This liquidity includes beneficial interests in two major trusts: the Bonnie J. Huizenga Perpetual Trust ($71.2 million) and the Old Hickory Irrevocable Trust No. 1 ($50.8 million), providing substantial financial backing.\n\nHudson's credit score of 766 as of July 2025 reflects strong creditworthiness. His income-producing assets are diversified across multiple real estate investments totaling $21.6 million in closely held companies and $19.6 million in direct real estate holdings. His notes receivable portfolio of $36.7 million to related entities demonstrates his role as a capital provider within his investment ecosystem.\n\nSince founding Hudson Capital Group in 1997 with his late father Harris \"Whit\" Hudson, Steven has overseen development of over 1 million square feet of Class A office space in Fort Lauderdale and 4,000 apartment and condominium units across Florida and Texas markets. His extensive civic involvement includes serving as Vice Chairman of the Florida Fish and Wildlife Conservation Commission (appointed by Governor Ron DeSantis), Chair of the Broward Workshop, and Executive Committee positions with The Marine Research Hub and The Humane Society of Broward County.\n\nCollaborative Partnership and Track Record\n\nThe Hudson-Ladd partnership began in 2015 with the acquisition of a prime Las Olas Boulevard corner property and has evolved into a sophisticated real estate investment platform. Their joint ventures demonstrate a systematic approach to high-value urban redevelopment, with total property acquisitions exceeding $200 million since 2015. Key collaborative projects include:\n\nThe Las Olas portfolio encompasses multiple prime properties generating nearly $1 million annually in net revenue. Their 1201-1213 East Las Olas development created 13,700 square feet of fully leased retail space generating $843,000 NNN annually. The 601 North Federal Highway assemblage, purchased for $30.1 million across 2018-2020, includes a 4.7-acre site with full approvals for two 30-story apartment towers containing 600 units and 70,000 square feet of ground-floor retail.\n\nTheir suburban shopping center portfolio demonstrates expertise in repositioning underperforming assets for higher-density redevelopment. The 830-840 East Oakland Park property, purchased for $10 million in June 2021, is under contract for sale at $14.1 million with entitlements for 340 apartment units. Similarly, their $40.5 million acquisition of 1300 SE 17th Street positions them in the high-density corridor near the expanded convention center and 800-room Omni hotel.\n\nHistorical Credit Performance and Resolution\n\nBoth sponsors experienced challenges during the 2009-2014 financial crisis, which they navigated through cooperative resolution strategies. Ladd's historical loan issues involved four income-producing properties and multiple development projects, with total exposure exceeding $50 million. Notably, these situations were resolved through loan modifications, short sales, and cooperative foreclosure processes rather than contentious litigation. The London Associates property, despite entering special servicing in 2012, was successfully modified in 2013 and has remained in good standing.\n\nThe sponsors' approach to distressed situations demonstrates professionalism and lender cooperation. Their Riverbend development, a 54-acre mixed-use project, involved complex resolution across multiple parcels and lenders, ultimately resolved through forbearance agreements and cooperative transfers. This track record, while reflecting the challenging market conditions of the period, demonstrates the sponsors' commitment to working constructively with lenders.\n\nCombined Financial Capacity and Guarantees\n\nThe guarantor structure provides substantial credit enhancement with combined net worth of $239.7 million and liquid assets totaling $100.6 million, significantly exceeding the lender's minimum requirements of $150 million net worth and $30 million liquidity. The guarantees include \"bad boy\" carve-outs, interest, and carry guarantees, providing comprehensive lender protection.\n\nThe sponsors' tax returns reflect sophisticated real estate investment strategies with substantial depreciation benefits and complex partnership structures. Hudson's 2022 federal return shows adjusted gross income of $1.9 million with significant real estate partnership income, while Ladd's returns demonstrate consistent income generation from his diversified real estate portfolio despite carrying forward passive activity losses from the financial crisis period.\n\nConclusion\n\nThis sponsorship represents a compelling combination of deep local market expertise, substantial financial resources, and proven execution capability. The sponsors' collaborative track record since 2015 demonstrates successful navigation of complex urban redevelopment projects totaling over $200 million in acquisitions. Their combined net worth of $321.7 million, strong credit profiles, and extensive real estate portfolios provide substantial financial backing for this transaction. While both sponsors experienced challenges during the 2009-2014 financial crisis, their cooperative approach to resolution and subsequent successful ventures demonstrate resilience and professional management of credit relationships.",
+      "loan_terms_narrative": "LOAN TERMS\n\nPRINCIPAL AMOUNT AND COMMITMENT\n\nThe loan facility (the \"Loan\") shall be made available by Fairbridge Credit LLC or any of its affiliates, partners, successors and/or assigns (collectively, \"Lender\") to 7023 Broward LLC, a Florida limited liability company (the \"Borrower\"), in an aggregate principal amount equal to the lesser of: (i) Twenty-Seven Million Dollars ($27,000,000); (ii) fifty-five percent (55%) of the market as-is value of the Property as determined by an MAI certified appraisal to be ordered by Lender upon receipt of the required expense deposit; or (iii) fifty-five percent (55%) of the Borrower's and its members' approved cost basis in the project at the time of closing. The Loan represents a commercial bridge financing facility structured to provide refinancing of existing indebtedness and pre-development funding for the Property located at 7001 and 7007-7181 West Broward Boulevard, Plantation, Florida.\n\nThe Borrower shall be structured as a bankruptcy remote entity acceptable to Lender, with Steve Hudson and Charles Ladd, Jr. (the \"Principals\" or \"Guarantors\") serving as members of the managing member. The Borrower entity shall be wholly-owned by an acceptable bankruptcy remote entity which shall serve as pledgor of the membership interests in Borrower. This structure is designed to provide Lender with enhanced credit protection through the implementation of customary bankruptcy remoteness provisions and single-purpose entity covenants.\n\nLOAN PURPOSE AND USE OF PROCEEDS\n\nThe proceeds of the Loan shall be applied exclusively for the following purposes: (i) refinancing existing debt secured by the Property, including but not limited to the outstanding loan from Amerant Bank in the approximate amount of Twenty-One Million Dollars ($21,000,000) secured by 7023 West Broward Boulevard and the loan from Gaddis Capital in the approximate amount of Three Million Dollars ($3,000,000) secured by 7001 West Broward Boulevard; (ii) payment of closing costs, fees, and expenses associated with the Loan; (iii) funding of interest reserves, operating shortfalls, and carrying costs during the loan term; (iv) payment of soft costs of development and pre-development expenses; and (v) other expenses as set forth in the budget to be approved by Lender prior to closing (the \"Budget\"). The Borrower shall contribute any additional equity required to close the Loan and maintain the project operations throughout the loan term.\n\nNo cash-out proceeds shall be distributed to the Borrower or its affiliates, thereby preserving the Borrower's existing equity investment of approximately Twenty-One Million Seven Hundred Seventy-Five Thousand Dollars ($21,775,000) in the Property. All loan proceeds must be used in accordance with the approved Budget, and any material deviations from such Budget shall require Lender's prior written consent.\n\nTERM AND MATURITY\n\nThe Loan shall have an initial term of eighteen (18) months from the closing date, with a single extension option available to Borrower for an additional six (6) month period, subject to the satisfaction of specified conditions precedent. The maturity date of the Loan shall be eighteen (18) months from the closing date, or if the extension option is properly exercised, twenty-four (24) months from the original closing date.\n\nThe extension option may be exercised by Borrower upon satisfaction of the following conditions: (i) no Default or Event of Default shall exist under the Loan documents at the time of the extension request or on the proposed extension date; (ii) the Budget shall be rebalanced, if necessary, to reflect current project requirements and market conditions; (iii) no material adverse change in the Property, Borrower, or Guarantors shall have occurred since the closing date; (iv) Borrower shall deliver written notice to Lender of its intent to exercise the extension option at least sixty (60) days but no more than ninety (90) days prior to the scheduled maturity date; (v) Borrower shall satisfy the debt yield test as specified in the Loan documents; (vi) Borrower shall fund with Lender additional sums such that there shall be, as of the first day of the extension period and at all times thereafter, at least three (3) months of interest and carrying costs for the Loan; and (vii) payment of an extension fee equal to one percent (1.00%) of the original Loan amount.\n\nINTEREST RATE AND PAYMENT TERMS\n\nThe Loan shall bear interest at a floating rate equal to the greater of: (i) the One-Month CME SOFR rate (the \"SOFR Rate\") plus six hundred seventy (670) basis points per annum, with a SOFR floor of four and thirty one-hundredths percent (4.30%); or (ii) eleven percent (11.00%) per annum. Interest shall be calculated based upon a 360-day year for the actual number of days outstanding and shall be payable monthly in arrears on the first day of each calendar month, commencing on the first day of the month following the closing date.\n\nIn the event Borrower exercises the extension option, the interest rate during the extension period shall be equal to the greater of: (i) the One-Month CME SOFR rate plus seven hundred seventy (770) basis points per annum; or (ii) twelve percent (12.00%) per annum, calculated on the same basis as the initial term rate.\n\nUpon the occurrence and during the continuance of an Event of Default, the Loan shall bear interest at the default rate equal to the lesser of: (i) twenty-four percent (24%) per annum; or (ii) the highest legally permissible rate under the laws of the State of Florida. Default interest shall be calculated on the same basis as the regular interest rate and shall be payable on demand.\n\nThe Loan shall be structured on an interest-only basis with no scheduled principal amortization during the term. All outstanding principal, together with accrued and unpaid interest, fees, and other amounts due under the Loan documents, shall be due and payable in full on the maturity date.\n\nCOLLATERAL AND SECURITY\n\nThe Loan shall be secured by a comprehensive security package including, without limitation: (i) a first mortgage lien on Borrower's fee simple interest in the real property located at 7001 and 7007-7181 West Broward Boulevard, Plantation, Florida, consisting of approximately 22.782 acres and containing a 240,987 square foot commercial retail center (the \"Property\"); (ii) a first priority security interest in all improvements, fixtures, equipment, and personal property located on or used in connection with the Property; (iii) a first priority security interest in all leases, rental agreements, security deposits, rents, issues, profits, revenues, and other income derived from the Property; (iv) a first priority security interest in all deposit accounts, cash management accounts, and reserve funds maintained in connection with the Property; (v) a pledge of one hundred percent (100%) of the membership interests in Borrower; and (vi) such other collateral as may be specified in the definitive Loan documents.\n\nAll security interests and liens shall be perfected in accordance with applicable law and shall be evidenced by appropriate financing statements, mortgage instruments, pledge agreements, and other security documents in form and substance satisfactory to Lender. The collateral shall be subject to customary permitted encumbrances as specified in the Loan documents, including but not limited to real estate taxes and assessments not yet due and payable, utility easements, and other matters of record that do not materially impair the value or use of the Property.\n\nGUARANTY ARRANGEMENTS\n\nThe Principals shall execute and deliver to Lender: (i) a limited \"bad boy\" carve-out guaranty covering customary non-recourse carve-out events including, without limitation, fraud, intentional misrepresentation, criminal acts, environmental violations, waste, voluntary bankruptcy filings, and violations of single-purpose entity covenants; and (ii) an interest and carrying cost guaranty covering the payment of interest, taxes, insurance, and other carrying costs during the loan term.\n\nThe carrying cost guaranty shall terminate automatically upon foreclosure of the Property or completion of an approved deed-in-lieu transaction, subject to satisfaction of customary conditions to be specified in the Loan documents. During the term of the carrying cost guaranty, interest and carrying expenses shall continue to be funded by Lender in accordance with the approved Budget, subject to customary limitations and the availability of funds in the interest reserve account.\n\nThe guaranties shall be full recourse obligations of the Principals and shall survive the maturity, acceleration, or other termination of the Loan until all guaranteed obligations have been paid in full. The guaranties shall contain customary provisions regarding enforcement, collection, and the rights and remedies available to Lender upon default.\n\nFEES AND EXPENSES\n\nBorrower shall pay to Lender an origination fee equal to one percent (1.00%) of the total Loan amount, which fee shall be fully earned upon closing and may be funded from Loan proceeds. Additionally, Borrower shall pay an exit fee equal to one percent (1.00%) of the total Loan amount, which shall be due and payable upon the earlier of: (i) prepayment of the Loan in whole; (ii) maturity of the Loan; or (iii) acceleration of the Loan following an Event of Default.\n\nBorrower shall pay a broker fee equal to one-half of one percent (0.50%) of the total Loan amount to Thomas Wood of Thomas D. Wood (the \"Broker\") pursuant to a separate agreement between Borrower and Broker. This fee shall be paid at closing and may be funded from Loan proceeds.\n\nIn the event Borrower exercises the extension option, Borrower shall pay an extension fee equal to one percent (1.00%) of the original Loan amount, which fee shall be due and payable on the original maturity date as a condition to the effectiveness of the extension.\n\nBorrower shall be responsible for all costs and expenses incurred in connection with the Loan, including but not limited to: legal fees and expenses of Lender's counsel; appraisal fees; environmental assessment costs; title insurance premiums and related charges; survey costs; recording fees and transfer taxes; and all other due diligence, closing, and ongoing administrative expenses.\n\nPREPAYMENT PROVISIONS\n\nVoluntary prepayment of the Loan shall be permitted at any time without penalty, provided that Lender shall have received, on or prior to the prepayment date, a minimum of nine (9) months of interest on the Loan, excluding any interim interest payable at closing. This minimum interest provision ensures that Lender receives adequate compensation for its commitment and underwriting efforts regardless of the timing of prepayment.\n\nAny prepayment shall be applied first to accrued and unpaid interest, then to outstanding fees and expenses, and finally to principal. Borrower shall provide Lender with at least three (3) business days' prior written notice of any intended prepayment, specifying the proposed prepayment date and amount. Upon prepayment in full, the exit fee shall become immediately due and payable.\n\nPartial prepayments shall be permitted in minimum amounts of One Million Dollars ($1,000,000) or such other amount as may be specified in the Loan documents. Any partial prepayment shall not affect the scheduled maturity date of the remaining principal balance or modify any other terms of the Loan.\n\nINTEREST RESERVE AND BUDGET ADMINISTRATION\n\nPrior to closing, Lender shall establish a comprehensive budget (the \"Budget\") covering all anticipated project costs, carrying expenses, and funding requirements during the loan term. The Budget shall include provisions for interest payments, real estate taxes, insurance premiums, utilities, maintenance and repairs, professional fees, and other operating expenses, as well as pre-development costs and soft costs associated with the planned redevelopment of the Property.\n\nAt least four (4) business days prior to each monthly payment date, Borrower shall deliver to Lender written notice requesting funding for the upcoming month's interest and carrying costs in accordance with the approved Budget. Lender shall fund such amounts directly from the interest reserve account, subject to the availability of funds and compliance with Budget limitations.\n\nIf at any time Lender determines that there are insufficient allocations in the then-approved Budget to cover at least six (6) months of estimated interest and carrying costs, Borrower shall be required to deposit additional funds with Lender within ten (10) days following delivery of Lender's notice. Such additional funds shall be deposited into appropriate reserve accounts and shall be available for funding future interest and carrying costs in accordance with the Budget.\n\nThe Budget may be modified from time to time with Lender's prior written consent, which consent shall not be unreasonably withheld for modifications that do not materially increase the total project costs or extend the anticipated development timeline. Any material changes to the project scope or development plan shall require Lender's approval and may necessitate a complete rebalancing of the Budget.\n\nDRAW PROCEDURES AND FUNDING REQUIREMENTS\n\nLoan proceeds shall be advanced in draws for project costs and expenses in accordance with the approved Budget. Each draw request shall be for a minimum amount of One Hundred Thousand Dollars ($100,000) and shall be accompanied by appropriate documentation evidencing the costs for which reimbursement is sought, including invoices, receipts, lien waivers, and such other materials as Lender may reasonably require.\n\nLender shall have the right to inspect the Property and review all project documentation prior to funding any draw request. Draw requests shall be processed within a reasonable time following Lender's receipt of complete documentation, typically within five (5) to ten (10) business days, subject to Lender's approval of the requested expenditures and confirmation that sufficient funds remain available under the approved Budget.\n\nAll draw proceeds shall be disbursed directly by Lender to the appropriate payees, including contractors, vendors, and service providers, rather than to Borrower, except in circumstances where Borrower has previously advanced funds for approved expenses and is seeking reimbursement. This disbursement procedure provides additional protection for Lender and ensures that loan proceeds are applied solely for their intended purposes.\n\nDEFAULT PROVISIONS AND CURE PERIODS\n\nEvents of Default under the Loan shall include, without limitation: (i) failure to pay any monetary obligation when due under the Loan documents; (ii) breach of any non-monetary covenant, representation, or warranty contained in the Loan documents; (iii) any representation or warranty proving to have been materially false or misleading when made; (iv) default under any guaranty or other credit support document; (v) bankruptcy, insolvency, or similar proceedings affecting Borrower or any Guarantor; (vi) material adverse change in the financial condition of Borrower or any Guarantor; and (vii) such other events as may be specified in the definitive Loan documents.\n\nMonetary defaults, other than scheduled monthly interest payments and payment at maturity, shall be subject to a cure period of five (5) days following written notice from Lender. Non-monetary defaults shall be subject to a cure period of fifteen (15) days following written notice from Lender, which cure period may be extended for a reasonable time to permit completion of the cure, provided that such extension shall not exceed sixty (60) days in the aggregate and Borrower is diligently pursuing the cure during such extended period.\n\nNo cure period shall be available for: (i) scheduled monthly interest payments; (ii) payment of principal and other amounts due at maturity; (iii) bankruptcy or insolvency proceedings; (iv) fraud or intentional misrepresentation; or (v) other events that, in Lender's reasonable judgment, pose an immediate threat to the value of the collateral or Lender's security position.\n\nUpon the occurrence and during the continuance of an Event of Default, Lender may exercise any and all rights and remedies available at law or in equity, including but not limited to acceleration of the Loan, foreclosure of the mortgage, appointment of a receiver, and enforcement of the guaranties.\n\nCONDITIONS PRECEDENT TO CLOSING\n\nThe obligation of Lender to fund the Loan shall be subject to satisfaction of customary conditions precedent, including but not limited to: (i) execution and delivery of all Loan documents in form and substance satisfactory to Lender; (ii) receipt of a current MAI certified appraisal of the Property indicating value sufficient to support the requested loan-to-value ratio; (iii) receipt of a current Phase I environmental assessment, and if recommended thereby, a Phase II environmental assessment, indicating no material environmental concerns; (iv) receipt of an ALTA loan policy of title insurance in the amount of the Loan, issued by a title company acceptable to Lender, showing good and marketable title to the Property subject only to permitted exceptions; (v) receipt of evidence of adequate property and casualty insurance coverage, with Lender named as mortgagee and loss payee; (vi) completion of Lender's due diligence review of Borrower, the Guarantors, and the Property to Lender's satisfaction; (vii) receipt of legal opinions from Borrower's counsel in form and substance satisfactory to Lender; and (viii) such other conditions as may be specified in the commitment letter or Loan documents.\n\nAs an additional and specific condition precedent, Lender shall have received the Live Local Opinion in form and substance reasonably satisfactory to Lender, confirming that as-of-right entitlements are in place for the mixed-use development under the Live Local Act as planned by Borrower, including proof that no fewer than five hundred seventy-seven (577) residential units on the Property are buildable as of right under local zoning and any other relevant land use laws and regulations.\n\nFINANCIAL COVENANTS AND REPORTING REQUIREMENTS\n\nBorrower shall be prohibited from incurring any additional indebtedness, whether secured or unsecured, other than the Loan and unsecured loans to upper-tier affiliates of Borrower from its members. Any such unsecured affiliate loans shall be subordinate in all respects to the repayment of the Loan and shall be subject to standstill and remedy provisions specified by Lender and approved by Lender in its sole discretion.\n\nBorrower shall maintain the Property as a single-purpose entity and shall comply with customary bankruptcy remoteness provisions designed to minimize the risk of a substantive consolidation of Borrower with its affiliates in any bankruptcy or insolvency proceeding. Such provisions shall include limitations on Borrower's activities, restrictions on amendments to organizational documents, requirements for independent directors or managers, and other structural protections.\n\nBorrower shall provide Lender with regular financial reporting, including monthly operating statements for the Property, quarterly financial statements for Borrower and its guarantors, annual audited financial statements, and such other financial information as Lender may reasonably request. All financial reporting shall be prepared in accordance with generally accepted accounting principles and shall be delivered within specified time periods following the end of each reporting period.\n\nGOVERNING LAW AND DISPUTE RESOLUTION\n\nThe Loan documents shall be governed by and construed in accordance with the laws of the State of New York, without regard to conflict of law principles. Any disputes arising under or in connection with the Loan documents shall be subject to the exclusive jurisdiction of the state and federal courts located in New York County, New York, and Borrower and Guarantors hereby consent to such jurisdiction and waive any objection to venue in such courts.\n\nThe Loan documents shall contain customary provisions regarding notices, amendments, waivers, successors and assigns, and other administrative matters. Any amendment or modification of the Loan documents shall require the written consent of Lender and shall be documented in accordance with applicable law.\n\nCOMMITMENT TERMS AND BREAK-UP FEE\n\nThis commitment shall remain open for acceptance until July 7, 2025 (the \"Committee Date\"), and closing of the Loan shall occur on or before July 16, 2025. Borrower shall pay a deposit of Seventy-Five Thousand Dollars ($75,000) upon execution of the commitment letter, of which Twenty Thousand Dollars ($20,000) shall constitute a non-refundable underwriting fee and the remaining Fifty-Five Thousand Dollars ($55,000) shall be applied toward closing costs and expenses.\n\nBorrower and Guarantors covenant that they will not obtain any other debt financing from a third party or fail to proceed with the financing outlined herein. In the event of a breach of this covenant or if Borrower fails to close the Loan for any reason other than Lender's default, Borrower shall pay to Lender a break-up fee equal to one percent (1.00%) of the Loan amount as liquidated damages.\n\nBorrower represents and warrants that it has not dealt with any broker or finder with respect to the Loan, except for Thomas Wood of Thomas D. Wood and Company, and agrees to indemnify Lender against any claims by other brokers or finders.\n\nThe foregoing terms constitute the essential elements of the proposed Loan and are subject to completion of due diligence, credit committee approval, and execution of definitive Loan documents containing customary terms and conditions for transactions of this type.",
+      "closing_funding_narrative": "Closing Funding and Reserves\n\nAt closing, Fairbridge will fund $27,000,000 representing 96.5% of the total capital stack, with the Sponsor contributing $980,876 in additional equity. The loan proceeds will be disbursed as follows: $24,000,000 to payoff existing debt, $270,000 origination fee (1.0%), $135,000 broker fee (0.5%), $175,500 title costs (0.65%), $75,000 lender legal, $40,000 borrower legal, and $100,000 miscellaneous closing costs, totaling $24,795,500 in immediate disbursements.\n\nThree critical reserves will be established but held back at closing. First, an $1,800,000 interest reserve calculated at the 11% loan rate, designed to provide coverage as Fairbridge sweeps all free cash flow from the property. Second, a $735,376 soft cost reserve to fund remaining project completion expenses. Third, a $650,000 litigation holdback specifically for the Dollar Tree litigation matter.\n\nThe loan structure includes a 9-month minimum yield provision. Sponsors will access the interest and soft cost reserves monthly through draw requests for eligible expenses. Fairbridge requires maintenance of a minimum three-month interest reserve at all times throughout the loan term. The interest reserve, combined with the cash flow sweep mechanism, is projected to provide approximately 18 months of debt service coverage.\n\nNet proceeds released to the Sponsor at closing total $23,814,624 after accounting for debt payoff, fees, and closing costs. The reserve structure ensures adequate liquidity for project completion while protecting lender interests through controlled disbursement mechanisms and minimum balance requirements.",
+      "zoning_narrative": "ZONING AND ENTITLEMENTS\n\nCURRENT ZONING CLASSIFICATION\n\nThe subject property is currently zoned B-2P (Business District with Planned Development overlay) within the City of Plantation, Broward County, Florida. This zoning classification is legally conforming and permits a broad range of commercial uses suitable for a regional shopping center. The property benefits from a special designation as part of the Plantation Priority Redevelopment Area, which provides additional development incentives and streamlined approval processes for qualifying projects.\n\nThe B-2P zoning district is specifically designed to accommodate large-scale commercial developments and mixed-use projects. This classification recognizes the property's strategic location and economic importance to the community while providing flexibility for future redevelopment initiatives. The Priority Redevelopment Area designation further enhances the property's development potential by offering expedited permitting processes and potential financial incentives for qualifying improvements.\n\nPERMITTED USES AND DEVELOPMENT STANDARDS\n\nUnder the current B-2P zoning classification, the property permits an extensive array of commercial uses that support the existing retail shopping center operation. Permitted uses include animal grooming services, veterinary hospitals and clinics, business service centers, postal centers, employment agencies, office supply stores, and travel agencies. Food and beverage establishments are well-represented with permissions for bars and lounges, bakeries, breweries, ice cream shops, and restaurants of various types.\n\nAutomotive-related uses include auto parts stores and tire sales and mounting facilities. Professional services encompass general and professional offices, banks and financial institutions, beauty parlors and barber shops, dry cleaning establishments, and optical stores. Retail categories include art galleries, clothing stores, department stores, florists, furniture stores, fitness centers, grocery stores, and general retail sales establishments. The zoning also accommodates hospitality uses such as hotels and motels, childcare facilities including day nurseries, and medical or dental offices.\n\nThe development standards for B-2P zoning establish specific parameters that govern building placement, size, and intensity. The minimum lot size requirement is five acres, with a minimum lot width of 250 feet. These standards ensure that developments within this district maintain appropriate scale and provide adequate space for parking, landscaping, and circulation. The maximum building height is restricted to 35 feet, which typically accommodates one to two-story commercial structures while maintaining compatibility with surrounding development patterns.\n\nSetback requirements vary based on the adjacent roadway classification and property boundaries. Buildings must be set back a minimum of 75 feet from major arterials that are 100 feet or more in width. For all other streets and property lines, the minimum setback equals 1.5 times the building height, ensuring adequate separation between structures and providing space for landscaping and pedestrian amenities.\n\nFloor Area Ratio limitations control development intensity based on building height. Single-story developments are limited to a maximum FAR of 0.30, two-story developments may achieve 0.60 FAR, and three-story developments can reach 0.90 FAR. These progressive ratios encourage vertical development while maintaining appropriate density levels. Maximum lot coverage is restricted to 30 percent, ensuring that a significant portion of each site remains available for parking, landscaping, and open space.\n\nParking requirements for retail uses are established at 3.33 spaces per 1,000 square feet of gross floor area. The subject property currently provides 991 parking spaces, equating to 4.11 spaces per 1,000 square feet, which exceeds the minimum requirement and provides operational flexibility for peak shopping periods and special events.\n\nLIVE LOCAL ACT PROVISIONS\n\nThe Florida Live Local Act represents a comprehensive statewide strategy designed to increase affordable housing availability throughout Florida. This legislation provides significant development incentives and regulatory relief for qualifying multifamily and mixed-use projects that include affordable housing components. The Act establishes a framework that allows developers to bypass traditional zoning restrictions while maintaining local development standards for infrastructure and safety.\n\nUnder the Live Local Act, qualifying developments may incorporate multifamily or mixed-use projects with multifamily components in commercial, industrial, or mixed-use zones without requiring zoning or land use changes. This provision eliminates lengthy and costly rezoning processes, providing certainty and reducing development timelines. Density allowances under the Act permit the highest density allowed on any land within the city or county where residential development is permitted, potentially enabling significantly higher unit counts than traditional zoning would allow.\n\nHeight restrictions are liberalized to allow the highest currently permitted height for commercial or residential development within one mile of the proposed project, or three stories, whichever is greater. This provision ensures that Live Local Act developments can achieve appropriate scale while maintaining compatibility with surrounding development patterns. Parking requirements are subject to reduction mandates, with local governments required to consider reductions for projects within one-quarter mile of transit stops, mandatory reductions of at least 20 percent for projects within one-half mile of major transportation hubs, and elimination of parking requirements for projects in Transit-Oriented Development areas.\n\nFloor Area Ratio limitations are prohibited below 150 percent of the highest currently allowed FAR within the jurisdiction, ensuring that Live Local Act projects can achieve economically viable densities. Administrative approval processes are mandated for development proposals that satisfy applicable land development regulations, eliminating discretionary review processes that can create uncertainty and delay. Projects that maintain affordability requirements are considered conforming uses beyond the 2033 statutory sunset, providing long-term development rights security.\n\nThe tax credit program associated with the Live Local Act allows businesses to contribute to the Florida Housing Finance Corporation to benefit the State Apartment Incentive Loan Program. Each one million dollars in tax credit contributions funds approximately 20 additional affordable housing units, creating a sustainable financing mechanism for affordable housing development.\n\nSUBJECT PROPERTY LIVE LOCAL ACT APPLICABILITY\n\nBased on consultation with the property owner's land use attorney, the subject property qualifies for Live Local Act benefits that would enable significant residential development on the excess land portion. With a gross site size of 23.1 acres and utilizing a density of 25 units per acre, the Live Local Act would permit 577 residential units on the subject excess land following partial demolition of existing retail space.\n\nThe property's location within one mile of the Plantation Walk development is crucial for establishing height allowances under the Act. Plantation Walk received approvals for maximum density allowed in Plantation and a height of 10 stories, with the underlying M-PM zoning district permitting up to 12 stories. This precedent establishes the height benchmark for Live Local Act applications in the immediate area.\n\nThe proposed multifamily project would be required to restrict 40 percent of its units as affordable housing for a minimum period of 30 years. This affordability requirement ensures that the development contributes to community housing needs while benefiting from the regulatory relief provided by the Act. The 30-year restriction period provides sufficient time for the affordable units to serve their intended purpose while allowing for potential conversion to market-rate housing in the future.\n\nPROPOSED LAND USE AMENDMENTS\n\nThe property owner has initiated a land use amendment application to facilitate the proposed mixed-use redevelopment. The amendment seeks to change the current land use designations from \"Commerce\" on the Broward County Land Use Plan Map and \"Commercial\" on the City of Plantation Future Land Use Plan Map to \"Dashed-Line Area\" on both plans. This designation provides greater flexibility for mixed-use development incorporating residential, retail, restaurant, grocery, and other commercial uses.\n\nThe amendment qualifies as a small-scale development activity under Chapter 163.3187, Florida Statutes, because it involves a parcel of 50 acres or less. This classification streamlines the approval process and reduces regulatory requirements compared to large-scale amendments. The small-scale designation also limits the scope of required studies and public hearing processes, potentially reducing approval timelines and costs.\n\nThe rationale for the land use amendment emphasizes the implementation of a mixed-use development that integrates multiple land uses at densities and intensities supportive of population and economic growth. The amendment is positioned as a tool to redevelop an underutilized property into a more productive mixed-use development that better serves community needs and economic development objectives.\n\nThe proposed Dashed-Line Area designation aligns with several Broward County Land Use Plan strategies, including TR-1 (transportation efficiency), MM-2 (mixed-use development), and EP-4 (economic prosperity). This consistency with regional planning objectives strengthens the amendment's approval prospects and demonstrates alignment with broader community development goals.\n\nENTITLEMENT STATUS AND DEVELOPMENT TIMELINE\n\nThe subject property currently maintains legally conforming status under existing zoning regulations, providing a solid foundation for continued operation and future development. The Priority Redevelopment Area designation enhances the property's entitlement position by providing access to expedited permitting processes and potential financial incentives.\n\nThe proposed redevelopment plan involves partial demolition of approximately 39,203 square feet of vacant retail space to accommodate 577 residential units on 6.3 acres of the site. The demolition phase is anticipated to require approximately six months, with estimated costs of $600,000. Following demolition, the remaining improved area would encompass 16.49 acres with 201,748 square feet of gross leasable area.\n\nThe Live Local Act provisions provide a clear pathway for residential development without requiring traditional rezoning processes, significantly reducing entitlement risk and timeline uncertainty. Administrative approval requirements under the Act ensure that qualifying projects receive timely review and approval, provided they meet applicable development standards.\n\nThe land use amendment process represents the primary entitlement challenge for the proposed development. However, the small-scale amendment classification and consistency with regional planning objectives support a favorable approval outcome. The amendment process typically requires several months for completion, including staff review, public hearings, and final adoption.\n\nREGULATORY COMPLIANCE AND DEVELOPMENT STANDARDS\n\nFuture development under either the existing zoning or proposed Live Local Act provisions must comply with applicable building codes, environmental regulations, and infrastructure requirements. The property's location within the Priority Redevelopment Area may provide access to infrastructure improvements and utility capacity enhancements that support higher-density development.\n\nStormwater management requirements will be particularly important for any redevelopment given the increase in impervious surface area associated with residential development. The project will need to demonstrate compliance with local and regional stormwater management standards, potentially requiring on-site retention facilities or contribution to regional stormwater systems.\n\nTraffic impact analysis will be required to assess the transportation effects of the proposed residential development and identify any necessary roadway improvements or traffic mitigation measures. The mixed-use nature of the development may provide some internal trip capture benefits that reduce external traffic impacts.\n\nThe entitlement framework for this property provides multiple pathways for successful redevelopment, with the Live Local Act offering the most direct route for residential development and the land use amendment providing long-term flexibility for mixed-use development. The combination of existing conforming status, special area designations, and state-level development incentives creates a favorable regulatory environment for the proposed redevelopment initiative.",
+      "exit_strategy": "Exit Strategy\n\nThe Sponsor's primary exit strategy centers on the sale of development parcels following strategic repositioning of the property through partial demolition and land use optimization. The plan involves demolishing approximately 39,203 square feet of vacant retail space to create 6.3 acres of excess land suitable for multifamily development. This repositioning strategy is designed to unlock significant value by transforming underperforming retail space into high-demand residential development opportunities.\n\nPrimary Exit Strategy\n\nThe preferred exit involves securing approval for 577 multifamily units under Florida's Live Local Act, which provides by-right residential density for qualifying projects. Upon completion of the six-month demolition phase and receipt of development approvals, the Sponsor intends to market the 6.3-acre excess parcel to residential developers. The appraised prospective value of this excess land upon completion is $29 million, representing substantial value creation from the current as-is aggregate value of $65.3 million for the entire repositioned property.\n\nThe timeline for this primary exit strategy spans approximately 18-24 months from loan origination. The first six months will focus on demolition activities and permit approvals, followed by 12-18 months of marketing and sale negotiations with qualified residential developers. The remaining retail center, valued at $36.7 million post-demolition, provides additional exit flexibility and can be sold separately or retained for ongoing cash flow.\n\nBackup Exit Strategies\n\nShould the Live Local Act approval process encounter delays or complications, the Sponsor has identified several backup exit options. The first alternative involves pursuing traditional land use change approvals through local zoning processes to enable residential development rights. While this path may extend the timeline by 6-12 months, it maintains the core value creation strategy of converting retail space to residential development land.\n\nA secondary backup strategy involves selling the property in its current retail configuration. The prospective stabilized value of the existing center is appraised at $51.8 million as of June 2027, providing adequate loan coverage even without the redevelopment component. This option offers the most conservative exit path while still generating positive returns.\n\nThe final backup option involves a partial exit strategy, where the Sponsor could sell individual phases or parcels separately to optimize timing and market conditions, maintaining flexibility throughout the hold period.",
+      "risks_mitigants_narrative": "RISKS AND MITIGANTS ANALYSIS\n\nThis transaction presents a well-structured bridge loan opportunity with meaningful downside protection, though execution risks require careful monitoring. The primary risk centers on entitlement execution, as the project's optimal exit strategy depends on securing approval for increased density through a land use amendment. However, this risk is substantially mitigated by Florida's Live Local Act, which provides a compelling fallback option allowing by-right development of up to 577 residential units if the amendment is denied, albeit with a 40% affordable housing requirement for 30 years.\n\nExit strategy execution represents the second key risk, as loan repayment depends on successfully marketing and selling development parcels to residential builders. Market timing, buyer due diligence delays, or changes in residential demand could impact repayment timing. This risk is mitigated by several factors: the preservation of over $21 million in sponsor equity with no cash-out proceeds, the ability for merchant builders to conduct parallel due diligence during entitlement processes, and the property's strong in-place cash flow of approximately $1.8 million annually, which supports carrying costs and provides refinancing optionality if sale delays occur.\n\nThe Live Local Act, while providing valuable entitlement protection, introduces procedural and legal challenge risks. Local governments may attempt to delay projects through supplemental documentation requests, environmental studies, or legal challenges regarding zoning classifications and affordability covenant enforceability. The sponsors plan to retain experienced land use counsel to ensure statutory compliance and proactively address municipal resistance, leveraging the Act's strong legal framework for qualifying projects.\n\nThese risks are balanced by substantial deal strengths that provide meaningful downside protection. The institutional sponsorship team brings over $320 million in combined net worth and extensive South Florida development experience. The property's strategic location within Plantation Midtown's targeted redevelopment corridor offers excellent demographics and infrastructure support. Recent leasing momentum, including two new leases executed in July 2025 that increased occupancy to 82% and added over $357,000 in annual rent, demonstrates continued retail viability during the transition period.\n\nThe loan structure provides additional protection through conservative sizing at 40% LTV based on as-is value and 57% LTC, with the sponsor's substantial equity cushion ensuring strong alignment. The 18-month term with a six-month extension option provides adequate time for entitlement and marketing execution while maintaining appropriate urgency.\n\nRECOMMENDATION: This transaction merits approval based on the conservative loan sizing, substantial sponsor equity, strong in-place cash flow, and multiple exit pathways. The Live Local Act fallback significantly reduces entitlement risk, while the institutional sponsorship and strategic location support successful execution. Key monitoring points should include entitlement progress, leasing performance, and residential market conditions affecting the exit strategy.",
+      "deal_highlights_narrative": "DEAL HIGHLIGHTS SUMMARY\n\nThis transaction presents a compelling opportunity with multiple layers of downside protection and upside potential. The property generates strong in-place cash flow of approximately $1.8 million annually, providing immediate debt service coverage and operational stability throughout the loan term. Recent leasing momentum is evident with two new leases executed in July 2025, including a 25,800 square foot junior anchor, which increased occupancy to 82% and added over $357,000 in new annual rent.\n\nThe sponsorship brings exceptional financial strength and local market expertise. Steven Hudson and Charles Ladd Jr. possess a combined net worth exceeding $320 million, with Hudson contributing over $100 million in liquid assets and Ladd bringing 35 years of South Florida development experience. Their substantial equity contribution of over $21.8 million demonstrates strong alignment with lender interests, with no cash-out proceeds requested.\n\nThe loan structure provides conservative leverage metrics with a 40% loan-to-value ratio at closing and 57% loan-to-cost ratio, creating significant equity cushion for downside protection. The property benefits from its strategic location within Plantation Midtown, a designated redevelopment corridor with planned infrastructure improvements and proximity to high-density developments like Plantation Walk.\n\nThe 18-month term with a six-month extension option provides flexibility for the sponsors' mixed-use redevelopment plans under Florida's Live Local Act, which allows as-of-right development of 577 residential units. The interest-only structure and budget-based funding mechanism ensure proper cash management while the sponsors execute their business plan. The combination of stable cash flow, experienced sponsorship, conservative leverage, and strategic location creates a well-protected investment with meaningful upside potential.",
+      "default_scenario_narrative": "Default Scenario Assumptions\n\nIn the event of default, the loan will immediately accelerate to the default interest rate of 24% per annum, representing the maximum legally permissible rate in Florida. This significant rate increase from the base rate of 11% minimum creates substantial financial pressure on the borrower while maximizing lender recovery during the default period.\n\nThe foreclosure timeline is governed by Florida law, with the lender holding a first mortgage lien on the borrower's fee interest in the property. Florida's judicial foreclosure process typically requires 6-12 months from filing to sale, though this timeline may extend based on borrower defenses or court delays. The borrower's bankruptcy remote structure and \"Bad Boy\" carveout guaranty provide additional protection against strategic defaults and bankruptcy delays.\n\nRecovery assumptions are supported by several protective features: the loan-to-value ratio is capped at 55% of market value, providing substantial equity cushion; the collateral package includes comprehensive security interests in all property improvements, personal property, leases, rents, and reserve funds; and 100% of the borrower's membership interests are pledged. The guarantors' interest and carry guaranty ensures continued funding of property expenses during foreclosure proceedings, protecting asset value. Given the conservative leverage, comprehensive collateral package, and Florida's established foreclosure procedures, recovery expectations would typically range from 85-100% of outstanding principal and accrued interest, assuming normal market conditions and property performance.",
+      "appraisal_analysis": "APPRAISAL ANALYSIS\n\nThe subject property, a retail shopping center located in Plantation, Florida, has been appraised under multiple scenarios to provide comprehensive valuation guidance for credit decision-making. The appraisal employed both the Sales Comparison Approach and Income Capitalization Approach, while the Cost Approach was omitted as it is not applicable for properties of this age and type, as prospective buyers in this market segment do not rely on cost-based valuations.\n\nVALUATION SCENARIOS AND CONCLUSIONS\n\nThe appraisal presents five distinct valuation scenarios, each addressing different potential uses and timing considerations for the property. Under the Retrospective As Is premise for the existing center as of June 28, 2025, the leased fee interest is valued at $46,600,000, representing $193.37 per square foot. This valuation reflects the property's current condition and occupancy level of 82 percent.\n\nThe Prospective As Stabilized scenario for the existing center, with a value date of June 28, 2027, concludes at $51,800,000 or $214.95 per square foot. This higher valuation assumes the property reaches stabilized occupancy of 96 percent over the estimated 24-month lease-up period, demonstrating the significant value creation potential through improved occupancy and lease-up of vacant space.\n\nFor redevelopment scenarios, the appraisal considers partial demolition options. The Retrospective As Is value assuming partial demolition is $36,700,000 for the leased fee interest as of June 28, 2025. Additionally, the Prospective Excess Land Value upon completion of demolition, assuming 577 approved residential units, is estimated at $29,000,000 or $105.67 per square foot on a fee simple basis, with a value date of December 28, 2025.\n\nThe aggregate value combining the partial demolition scenario with the excess land value totals $65,275,000, representing the highest value conclusion and suggesting that redevelopment may offer superior returns compared to maintaining the existing retail configuration.\n\nAPPROACH METHODOLOGY AND RECONCILIATION\n\nBoth the Sales Comparison Approach and Income Capitalization Approach were utilized across scenarios, with close alignment between methodologies. For the retrospective as-is existing center valuation, the Sales Comparison Approach yielded $46,000,000 ($190.88 per square foot) while the Income Approach concluded $46,600,000 ($193.37 per square foot), demonstrating strong correlation between market evidence and income-based analysis.\n\nSimilarly, for the prospective stabilized scenario, the Sales Comparison Approach indicated $51,200,000 ($212.46 per square foot) compared to the Income Approach conclusion of $51,800,000 ($214.95 per square foot). This consistency across approaches strengthens confidence in the valuation conclusions and indicates robust market support for the estimated values.\n\nFINANCIAL PERFORMANCE ANALYSIS\n\nThe property's current financial performance reflects typical challenges facing retail properties in the current market environment. With 82 percent occupancy, the property operates below optimal levels but demonstrates potential for improvement. The stabilized pro forma for the existing center projects effective gross income of $5,119,263 ($21.24 per square foot) with operating expenses of $2,136,397 ($8.87 per square foot), resulting in an expense ratio of 41.73 percent and net operating income of $2,982,866 ($12.38 per square foot).\n\nUnder the partial demolition scenario, the remaining retail space would generate effective gross income of $3,952,739 ($19.59 per square foot) with operating expenses of $1,816,553 ($9.00 per square foot). This scenario shows a higher expense ratio of 45.96 percent, reflecting the challenges of operating a smaller retail footprint, and produces net operating income of $2,136,186 ($10.59 per square foot).\n\nThe appraisal utilizes market-supported capitalization rates, with an overall capitalization rate of 6.0 percent, discount rate of 8.5 percent, and terminal capitalization rate of 6.5 percent. These rates reflect current market conditions and investor expectations for retail properties of this type and location.\n\nMARKET POSITION AND RISK ASSESSMENT\n\nThe property benefits from several competitive advantages that support its market position. The Plantation location provides access to a stable demographic base, while frontage on West Broward Boulevard and NW 70th Avenue ensures strong visibility and accessibility. The tenant mix includes credit tenancy with grocery and fitness anchors, providing stability and drawing power that supports the overall center's performance.\n\nSignificant upside potential exists based on below-market rents, suggesting opportunity for income growth through lease renewals and new leasing activity. This factor particularly supports the higher valuations shown in the stabilized scenarios.\n\nHowever, the property faces headwinds from broader market conditions. Commercial real estate markets have experienced deterioration due to increased capital costs beginning in 2022, reducing transaction volume and creating pricing uncertainty. Additionally, recent trade policy implementations have introduced global economic uncertainty that may impact commercial real estate values.\n\nCONCLUSION AND CREDIT CONSIDERATIONS\n\nThe appraisal provides a comprehensive range of values from $36,700,000 to $65,275,000 depending on the development scenario pursued. The existing center shows solid fundamentals with potential for value creation through lease-up and stabilization. The redevelopment option presents the highest value conclusion but requires significant capital investment and execution risk.\n\nFor credit purposes, the conservative retrospective as-is value of $46,600,000 provides a solid foundation for lending decisions, while the stabilized value of $51,800,000 demonstrates the property's income-generating potential. The redevelopment scenarios offer additional exit strategies but should be weighted according to the borrower's development experience and market conditions at the time of execution.",
+      "environmental_narrative": "Environmental Review\n\nAST Florida Environmental Inc. completed a Phase I Environmental Site Assessment in April 2022 for the Strip Center located at 7007-7181 West Broward Boulevard in Plantation, Florida. The assessment was conducted in accordance with ASTM Practice E1527-13, incorporating aspects of the E1527-21 standard, and EPA's All Appropriate Inquiry standards to support the intended purchase of the property.\n\nThe scope of work included review of historical records, aerial photographs, government environmental databases, site reconnaissance, and interviews with property representatives and regulatory personnel. The assessment excluded evaluation of asbestos, indoor air quality, mold, radon, wetlands, and other non-scope environmental conditions.\n\nFindings: The assessment did not identify any current Recognized Environmental Conditions (RECs) or Controlled RECs associated with the subject property. However, one Historical REC was identified at the adjacent Dryclean USA facility at 7165 West Broward Boulevard. This dry cleaning operation historically used chlorinated solvents and experienced groundwater contamination but ceased operations around 2009. The facility underwent extensive remediation and monitoring, ultimately receiving an Unconditional Site Rehabilitation Completion Order from regulatory authorities on September 30, 2013.\n\nConclusion: Based on the comprehensive review of current and historical property uses, environmental records, site reconnaissance, and regulatory interviews, no evidence of recognized environmental conditions was identified in connection with the subject property. The Historical REC at the adjacent dry cleaning facility does not appear to pose a concern given its regulatory closure status and completion of required remediation activities.",
+      "construction_budget_narrative": "Construction Budget\n\nWhile comprehensive budget data is not available for this Plantation, FL pre-development project, the draw schedule provides insight into the current financial status. The total project budget is $1,211,250, split between Phase 1 ($971,250) and Phase 2 ($240,000) pre-development activities.\n\nKey budget categories include Architecture ($225,000), Civil engineering ($200,000), and Landscape design ($175,000) as the largest line items. Legal fees are budgeted at $100,000, with miscellaneous fees at $110,000. The project includes a 5% contingency of $46,250 for Phase 1 activities.\n\nTo date, $503,153 has been paid across various categories, with $735,376 remaining in the total budget. This first draw request totals $52,455, with Fairbridge approving $35,598. Notable expenditures include substantial payments for Architecture ($188,287 paid) and Landscape ($98,253 paid), while several categories like MEP, Geotech, and various municipal fees remain largely untouched.\n\nThe draw schedule indicates this is a refinance transaction in the pre-development phase, focusing primarily on design, engineering, and regulatory approval processes rather than actual construction activities.",
+      "comps_narrative": "COMPARABLE SALES ANALYSIS\n\nThe comparable sales analysis provides strong market support for the subject property's valuation conclusions. Four recent transactions ranging from $12.86 million to $22.5 million establish a robust pricing framework for retail properties in the South Florida market.\n\nThe most relevant comparable is 2200-2246 N University Drive, which sold for $12.86 million in May 2024 with an assessor's value ratio of 90 percent. This property, built in 1986, demonstrates similar vintage characteristics to the subject's 1976-1979 construction. The 8129-8315 N Pine Island Road sale at $22.5 million in April 2024 represents the upper end of the comparable range, though its 1982 construction and 81 percent assessment ratio suggest potential value enhancement opportunities similar to those identified for Plantation Marketplace.\n\nParticularly noteworthy is the 1000 N Federal Highway transaction, which achieved $18.825 million despite being a newer 2015 construction. The significant variance between its assessed value and sale price (71 percent ratio) indicates strong investor demand for well-positioned retail assets, supporting the subject's premium valuation assumptions.\n\nThe assessment-to-sale price ratios across comparables range from 71 to 90 percent, with an average of 82.5 percent. This pattern suggests consistent undervaluation by tax assessors relative to market pricing, which supports the subject's appraised values exceeding typical assessment benchmarks.\n\nWhen analyzing the subject's retrospective as-is value of $46.6 million against its 2022 purchase price of $45.775 million, the modest appreciation aligns with the comparable sales timeline and market conditions. The subject's price per square foot of $189.95 at acquisition falls within the reasonable range established by the comparables, particularly considering the subject's superior 240,987 square feet of gross leasable area and strategic Broward Boulevard location.\n\nThe prospective stabilized value of $51.8 million reflects anticipated lease-up from 82 percent to 96 percent occupancy, supported by the comparable sales demonstrating continued investor confidence in retail properties with repositioning potential. The sales comparison approach values of $46 million (as-is) and $51.2 million (stabilized) closely align with income approach conclusions, validating the market-derived capitalization rates and confirming the subject's competitive positioning within the established comparable sales framework.",
+      "property_value_narrative": "PROPERTY VALUE\n\nThe subject property valuation was conducted using multiple approaches to reflect different ownership scenarios and development alternatives. The appraiser employed both income and sales comparison methodologies across five distinct valuation premises, providing comprehensive market value conclusions ranging from $29.0 million to $65.3 million depending on the intended use and timing.\n\nValuation Approaches and Methodology\n\nFor the existing retail center configuration, the appraiser utilized both income capitalization and sales comparison approaches. The retrospective \"as-is\" valuation as of June 28, 2025, concluded at $46.6 million using the income approach and $46.0 million via sales comparison, resulting in a final concluded value of $46.6 million or $193.37 per square foot. The prospective \"as-stabilized\" scenario, assuming full lease-up by June 28, 2027, yielded higher values of $51.8 million (income approach) and $51.2 million (sales comparison), with a final conclusion of $51.8 million or $214.95 per square foot.\n\nThe partial demolition and redevelopment scenario was valued at $36.7 million for the remaining retail portion, while the excess land value for residential development was estimated at $29.0 million, assuming 577 approved units. The aggregate value combining both components totaled $65.3 million, representing the highest value conclusion and suggesting optimal value realization through mixed-use redevelopment.\n\nNet Operating Income Analysis\n\nThe appraiser's prospective NOI projections for the existing center stabilized scenario show effective gross income of $5.12 million ($21.24 per square foot) with operating expenses of $2.14 million ($8.87 per square foot), resulting in a 41.73% expense ratio. This generates a net operating income of $2.98 million or $12.38 per square foot. The partial demolition scenario projects lower income density at $19.59 per square foot but higher expense ratios at 45.96%, yielding NOI of $2.14 million.\n\nCapitalization Rate Selection\n\nThe appraiser applied a 6.0% overall capitalization rate for income valuations, which appears reasonable for retail properties in the current market environment. The discount rate of 8.5% and terminal cap rate of 6.5% reflect appropriate risk premiums and market expectations. These rates consider the property's location, tenant quality, lease terms, and market conditions specific to the South Florida retail market.\n\nConcluded Values Summary\n\nThe valuation conclusions demonstrate significant value variance based on use assumptions. The existing center \"as-is\" value of $46.6 million reflects current 82% occupancy levels, while the stabilized value of $51.8 million assumes achievement of 96% occupancy over a 24-month lease-up period. The redevelopment scenario's aggregate value of $65.3 million represents a 40% premium over the existing use, indicating substantial development potential.\n\nComparison to Borrower Projections\n\nThe borrower's November 2025 financial statements reveal operational challenges not fully reflected in the appraiser's projections. The borrower reported a net loss of $285,720 for November and year-to-date losses of $2.31 million, contrasting sharply with the appraiser's positive NOI projections. The borrower's cash position of $378,509 as of November 30, 2025, appears insufficient to support the capital requirements implied in the stabilization assumptions. Additionally, significant accrued real estate taxes of $566,082 and various receivables from Fairbridge totaling approximately $744,000 suggest cash flow stress not captured in the appraisal's forward-looking projections.\n\nThe disconnect between the appraiser's stabilized projections and the borrower's actual operating performance raises concerns about achievability of the projected NOI levels and the 24-month stabilization timeline. The borrower's financial condition may impair their ability to execute the leasing and capital improvement strategies necessary to achieve the appraised stabilized values.",
+      "litigation_narrative": ""
+    },
+    "risks_and_mitigants": {
+      "items": [
+        {
+          "title": "Entitlement Risk",
+          "description": "The project's density increase depends on approval of a land use amendment. If denied, it could limit redevelopment potential.",
+          "mitigant": "The Sponsors intend to proceed under Florida's Live Local Act if the amendment is denied. This statute allows by-right development of up to 577 residential units, provided that 40% are designated as affordable housing for a minimum of 30 years.",
+          "sub_risks": []
+        },
+        {
+          "title": "Exit Strategy Execution",
+          "description": "The exit strategy depends on selling Phases I and II land to residential developers. Delays in marketing, entitlements, or buyer due diligence may impact loan repayment timing.",
+          "mitigant": "No loan proceeds will be distributed to the Sponsor, preserving $21+ million of at-risk equity. Merchant builders can initiate due diligence in parallel with land use approvals. Additionally, because the shopping center generates in-place cash flow, the Sponsors could pursue a refinance if necessary.",
+          "sub_risks": []
+        },
+        {
+          "title": "Live Local Act – Procedural and Legal Challenges",
+          "description": "Although local governments are prohibited from denying qualifying Live Local Act applications outright, they may still attempt to delay or challenge projects.",
+          "mitigant": "The Sponsors will retain experienced land use counsel to ensure full statutory compliance and to proactively address any procedural or legal obstacles. The Live Local Act offers a strong legal framework for advancing qualifying projects despite potential municipal resistance.",
+          "sub_risks": [
+            "Procedural delays (e.g., requesting supplemental documentation or environmental reports)",
+            "Legal challenges contesting the property's commercial/mixed-use zoning classification",
+            "Disputes over the enforceability of the proposed affordability covenants"
+          ]
+        }
+      ]
+    },
+    "deal_highlights": {
+      "items": [
+        {
+          "title": "Strong In-Place Cash Flow",
+          "description": "The retail center currently generates approximately $1.8 million in annual cash flow, which is expected to continue throughout the Loan term. This income supports carry costs and offers downside protection in the event of exit delays."
+        },
+        {
+          "title": "Institutional Sponsorship with Local Expertise",
+          "description": "The Sponsorship team, led by Steven Hudson and Charles Ladd Jr., has a combined net worth exceeding $320 million, deep experience in Florida real estate, and a track record of successful commercial and mixed-use development in South Florida."
+        },
+        {
+          "title": "Strategic Location within Redevelopment Corridor",
+          "description": "The Property is located in Plantation Midtown, a targeted redevelopment district with substantial planned infrastructure improvements. The location offers excellent access, strong demographics, and is adjacent to high-density projects such as Plantation Walk."
+        },
+        {
+          "title": "Recent Leasing Momentum",
+          "description": "The Sponsor executed two new leases in July 2025, increasing occupancy to 82%. These leases include a 25,800 SF junior anchor and a stabilized inline tenant, contributing over $357,000 in new annual rent, and reinforcing retail viability."
+        },
+        {
+          "title": "Significant Equity Cushion",
+          "description": "The Sponsor has contributed over $21.8 million of at-risk equity, with no cash-out proceeds from the Loan. This substantial equity position demonstrates Sponsor alignment and provides a meaningful buffer for Fairbridge."
+        },
+        {
+          "title": "Low LTV/LTC",
+          "description": "The Loan has been sized to a conservative 40% LTV at closing (41% fully drawn) and 57% LTC, based on the as-is value of the existing retail and conservative assumptions for pre-development costs. Even under the fallback appraisal, LTV remains below 61%."
+        }
+      ]
+    },
+    "due_diligence": {
+      "lenders_counsel": "Akerman LLP – Alan Cohen",
+      "borrowers_counsel": "Greenspoon Marder LLP – Barry E. Somerstein",
+      "appraisal_firm": "CBRE - Jay Hertzbach",
+      "appraisal_company": "CBRE Valuation & Advisory Services",
+      "pca_firm": "BBG Assessments, LLC – Kelly DeJong",
+      "background_check_firm": "VCheck - Amelio Deripa",
+      "environmental_firm": "Turner Environmental, LLC – David Turner",
+      "site_visit_team": "Fairbridge - Steve Wissak & Anthony Balbo"
+    },
+    "environmental": {
+      "firm": "AST FLORIDA ENVIRONMENTAL INC",
+      "report_date": "April 2022",
+      "property_address": "7007-7181 West Broward Boulevard, Plantation, Florida 33317",
+      "findings_summary": "A review of current and past uses of the subject property and adjoining/nearby properties; a review of environmental record sources and file records; the results of the subject property and vicinity reconnaissance; and the results of interviews did not identify evidence of suspect environmental conditions in connection with the subject property that, in AST’s opinion, were recognized environmental conditions. This assessment has not revealed evidence of recognized environmental conditions in connection with the subject property.",
+      "historical_recs": [
+        {
+          "site": "Dryclean USA Facility",
+          "address": "7165 West Broward Boulevard, Plantation",
+          "description": "The Dryclean USA Facility discharge is identified as a Historical REC. This facility did at one time use chlorinated solvents but apparently ceased around 2009. This site had a history of groundwater contamination. The facility underwent extensive cleanup, assessment and post cleanup monitoring. This facility received an Unconditional Site Rehabilitation Completion Order on September 30, 2013. Subsequent pertinent violations or discharges were not identified. Based on the regulatory status, regulatory interviews, subsequent inspection reports and assessment history of the facility this historical REC does not appear to pose a concern at this time."
+        }
+      ],
+      "recognized_environmental_conditions": [],
+      "controlled_recs": [],
+      "assessment_standard": "ASTM Practice E1527-13, incorporating certain aspects of the new E1527-21 standard"
+    },
+    "zoning": {
+      "zone_code": "B-2P",
+      "permitted_uses": "Animal grooming, Veterinary hospital/clinic, Business service center/postal center, Employment agency, Office supply store, Travel agency, Bar/lounge, Bakery, Brewery, Ice cream shop, Restaurant, Auto parts store, Tire sales and mounting, General or professional office, Bank and financial institution, Beauty parlor/barber, Dry cleaning, Optical stores, Art gallery, Clothing store, Department store, Florist, Furniture store, Fitness center, Grocery store, Retail sales establishments, Hotel or motel, Day nursery, Medical or dental office, among others.",
+      "live_local_act": {
+        "description": "A comprehensive, statewide attainable housing strategy, designed to increase the availability of affordable housing opportunities for Florida’s residents.",
+        "tax_credit_program": "Businesses can contribute to the Florida Housing Finance Corporation to benefit the State Apartment Incentive Loan (SAIL) Program. Every $1 million in tax credit contribution funds approximately 20 additional units of affordable housing.",
+        "land_use_entitlements_summary": {
+          "use": "Multifamily or mixed-use with multifamily allowance in commercial, industrial, or mixed-use zones without zoning or land use change.",
+          "density": "Highest density allowed on any land in City or County where residential development is allowed.",
+          "height": "Highest currently allowed height for a commercial or residential development within 1 mile of the proposed development or 3 stories, whichever is higher.",
+          "parking_requirements": "Local governments must 'consider' reducing parking for projects within ¼ mile of transit stop; must reduce by at least 20% if within ½ mile of a 'major transportation' hub; required to eliminate for projects in a TOD.",
+          "floor_area_ratio": "Local governments are prohibited from limiting the FAR below 150 percent of the highest currently allowed FAR in the jurisdiction.",
+          "administrative_approval": "A development proposal must be administratively approved if it satisfies land development regulations.",
+          "non_conforming_use": "Projects that remain affordable will be considered conforming uses, beyond the 2033 statutory sunset."
+        },
+        "subject_applicability": "Based on correspondence with the subject owners land use attorney, based on a gross site size of 23.1-acres and a density of 25 units per acre, Live Local would allow 577 units on the subject excess land, post demolition. The property is located within one mile of the Plantation Walk development. That project has approvals for the maximum density allowed in Plantation and a height of 10 stories (the M-PM zoning district allows a maximum of 12 stories). The proposed multifamily project would need to restrict 40% of its units as affordable units for a period of 30 years."
+      },
+      "highest_best_use_vacant": "Mixed-Use Retail and Residential",
+      "highest_best_use_improved": "Redevelopment to Higher Density Mixed-Use Retail and Residential"
+    },
+    "active_litigation": {
+      "exists": true,
+      "cases": [
+        {
+          "case_name": "Dollar Tree vs. 7023 Broward, LLC",
+          "background": "In July 2021, Dollar Tree entered into a lease agreement with 7001 Plantation 2019, LP. A Memorandum of Lease was recorded on May 12, 2022. On July 15, 2022, 7001 Plantation transferred title to 7023 Broward, LLC. 7023 Broward was required to deliver the premises to Dollar Tree by November 1, 2022. As of the date of the complaint, the delivery conditions had not been met.",
+          "sponsor_explanation": "7023 Broward disputes claims, offered an alternate inline space which Dollar Tree declined citing a restrictive covenant in an existing CVS lease. 7023 Broward has filed a counterclaim seeking rescission of the lease, alleging a pre-existing CVS restrictive covenant prohibits leasing to discount retailers.",
+          "fairbridge_analysis": "{\"counsel_firm\":\"Akerman LLP\",\"filing_date\":\"November 1, 2024\",\"counts\":\"Two counts of breach of contract.\",\"damage_theories\":[\"Count I seeks $1,000 per day in liquidated damages (Late Fee) starting from November 1, 2022.\",\"Count II seeks actual damages as an alternative.\"],\"relief_sought\":\"The complaint seeks only monetary relief; no lis pendens has been filed.\",\"potential_damages\":\"The total Late Fee from November 1, 2022 through January 5, 2026 (commencement of the trial period) would be approximately $1.16 million, to which a prejudgment interest calculation may apply.\",\"trial_period\":\"January 5, 2026 until January 23, 2026\"}",
+          "holdback": "$650,000"
+        }
+      ]
+    },
+    "foreclosure_analysis": {
+      "default_interest_scenario": {
+        "assumptions": {
+          "default_date": "",
+          "foreclosure_timeline_months": "",
+          "default_interest_rate": "",
+          "loan_balance_at_default": "",
+          "monthly_tax_payment": "",
+          "monthly_insurance_payment": "",
+          "total_legal_fees": ""
+        },
+        "metrics": {
+          "balance_at_foreclosure": "",
+          "property_value": "",
+          "ltv_at_foreclosure": "",
+          "net_property_value": "",
+          "discounted_ltv": ""
+        }
+      },
+      "note_rate_scenario": {
+        "assumptions": {
+          "default_date": "",
+          "foreclosure_timeline_months": "",
+          "note_rate_interest": "",
+          "loan_balance_at_default": ""
+        },
+        "metrics": {
+          "balance_at_foreclosure": "",
+          "property_value": "",
+          "ltv_at_foreclosure": "",
+          "net_property_value": "",
+          "discounted_ltv": ""
+        }
+      }
+    },
+    "collaborative_ventures": {
+      "items": [
+        {
+          "property_address": "800-810 East Las Olas, Fort Lauderdale, FL",
+          "acquisition_date": "September 2015",
+          "acquisition_price": 14500000,
+          "description": "Existing commercial building with 100 feet of Las Olas frontage",
+          "status": "Disposition: Traded to Las Olas Co. along with an older property (50 feet of frontage on the north side of Las Olas) in exchange for: 100 feet of frontage at the northwest corner of Las Olas and SE 10th Terrace"
+        },
+        {
+          "property_address": "1007 East Las Olas Blvd, Fort Lauderdale, FL",
+          "acquisition_date": "November 2015",
+          "acquisition_price": 800000,
+          "description": "19,250 SF parcel with 100 feet of frontage",
+          "status": "Currently under development as a 12-story, 81-room hotel with four floors of for-sale condominiums (17 units totaling 48,000 SF). Basement parking is complete. Site plan approval for the residential component is in place, and permit revisions are underway."
+        },
+        {
+          "property_address": "1015-1101 East Las Olas Blvd, Fort Lauderdale, FL",
+          "acquisition_date": "November 2016",
+          "acquisition_price": 800000,
+          "description": "34,000 SF parcel with 200 feet of frontage",
+          "status": "Redevelopment to date includes a new 3,975 SF retail building leased to Warby Parker and Yeti, as well as one 2,700 SF restaurant leased at $100/SF NNN. A rear staging area, currently supporting construction of the adjacent hotel, will be converted into a 20-space surface lot upon completion. An additional 23-space pay lot is also operating on-site. Current net revenue is $980,000 annually. The long-term plan is to redevelop the site into a higher-density mixed-use project following hotel completion."
+        },
+        {
+          "property_address": "1201-1209 East Las Olas Blvd, Fort Lauderdale, FL",
+          "acquisition_date": "August 2017",
+          "acquisition_price": 4500000,
+          "description": "200 linear feet of frontage, including a 6,285 SF retail building and 1,000 SF corner kiosk",
+          "status": "A new 7,420 SF retail building was constructed, and the original structure fully renovated. The combined 13,700 SF of retail space is now 100% leased, generating $843,000 in NNN annual income."
+        },
+        {
+          "property_address": "601 North Federal Highway, Fort Lauderdale, FL",
+          "acquisition_period": "2018–2020",
+          "acquisition_price": 30100000,
+          "description": "4.7-acre site covering nearly an entire city block between NE 6th and 7th Streets",
+          "status": "Subdivided into two parcels: Front parcel (0.8 acres): Improved with a 27,000 SF, three-story office building, fully leased at $1.18 million NNN. Rear parcel (3.9 acres): Fully entitled for two 30-story apartment towers totaling 600 units and 70,000 SF of ground-floor retail, including a 30,000 SF Publix supermarket. Property is being marketed for sale or joint venture with a multifamily development partner."
+        },
+        {
+          "property_address": "401 Fourth Street, Fort Lauderdale, FL",
+          "acquisition_date": "May 2019",
+          "acquisition_price": 4300000,
+          "description": "25,000 SF land parcel with an existing two-story, 14,500 SF building",
+          "status": "Existing building fully renovated for ground-floor retail use. A new 4,100 SF freestanding retail structure was added, bringing total GLA to 18,700 SF, fully leased at $800,000 NNN. Held as a future high-rise development site in the Flagler Village district."
+        },
+        {
+          "property_address": "830-840 East Oakland Park Blvd, Oakland Park, FL",
+          "acquisition_date": "June 2021",
+          "acquisition_price": 10000000,
+          "description": "53,000 SF shopping center on 4 acres with 30,300 SF currently leased",
+          "status": "In-place base rent of $638,000. Entitlements are underway for a 340-unit multifamily redevelopment. Under contract for sale to a multifamily developer for $14,100,000."
+        },
+        {
+          "property_address": "3400 Andrews Avenue, Oakland Park, FL",
+          "acquisition_date": "May 2021",
+          "acquisition_price": 23400000,
+          "description": "143,000 SF shopping center on 14.6 acres with 128,000 SF currently leased",
+          "status": "In-place base rent of $2,230,800; gross rent of $2,484,846. Conceptual redevelopment plan completed for a mixed-use project with 900 residential units and four outparcels, including the existing AutoZone."
+        },
+        {
+          "property_address": "1300 SE 17th Street, Fort Lauderdale, FL",
+          "acquisition_date": "October 2021",
+          "acquisition_price": 40500000,
+          "description": "91,700 SF shopping center on 7.37 acres with 81,000 SF currently leased",
+          "status": "Base rent of $3,290,000; gross rent of $4,490,000. Located in the high-value, high-density 17th Street corridor near the soon-to-be-completed 1.5 million SF convention center and 800-room Omni hotel. A comparable property across the street recently sold to Related for $8 million per acre for a mixed-use redevelopment including retail, a 250-unit Live Local apartment project, and a 30-story tower."
+        },
+        {
+          "property_address": "3271 North SR 7, Margate, FL",
+          "acquisition_date": "December 2021",
+          "acquisition_price": 6300000,
+          "description": "37,400 SF shopping center on 5.5 acres, currently vacant except for a 4,000 SF daycare facility",
+          "status": "In-place base rent of $100,000. Site plan approval is in process for a 320-unit multifamily development incorporating the existing daycare. Property will be marketed to merchant builders within 6-8 months as approvals near completion."
+        },
+        {
+          "property_address": "1301 Lyons Road, Coconut Creek, FL",
+          "acquisition_date": "February 2022",
+          "acquisition_price": 11900000,
+          "description": "80,500 SF shopping center on 9.8 acres with 59,200 SF currently leased",
+          "status": "Base rent of $866,000; gross rent of $1,456,000. Conceptual redevelopment plan completed for 350 multifamily units and 20,000 SF of new retail with direct street frontage."
+        },
+        {
+          "property_address": "7001-7023 W. Broward Blvd, Plantation, FL",
+          "acquisition_period": "June-July 2022",
+          "acquisition_price": 45775000,
+          "description": "240,900 SF shopping center on 17.8 acres, plus a 14,700 SF Bank of America facility on 5.5 adjacent acres",
+          "status": "Base rent of $2,900,000; gross rent of $3,760,000 for the shopping center. The Bank of America parcel generates an additional $100,000 in gross rent. Redevelopment plans include four apartment pods totaling 1,750 units and a new 55,000 SF neighborhood retail center. Initial apartment pod will remove 20,000 SF of currently vacant retail; a second 320-unit pod will eliminate another 25,000 SF (15,000 SF of which is also vacant), leaving a post-redevelopment center GLA of 195,900 SF."
+        },
+        {
+          "property_address": "1601 S. Federal Highway, Fort Lauderdale, FL",
+          "acquisition_date": "August 2024",
+          "acquisition_price": 3651500,
+          "description": "Former 4,000 SF Truist Bank branch with drive-thru on a 34,500 SF land parcel with full Federal Highway frontage",
+          "status": "Truist's remaining lease (3+ years) was terminated in exchange for a $315,000 landlord payment. A new lease has been executed with Pediatric Associates for a 7,400 SF buildout at $70/SF NNN ($518,000/year). Occupancy is expected by June 2026."
+        }
+      ],
+      "property_map": ""
+    },
+    "capital_stack": {
+      "table": {
+        "title": "Capital Stack at Closing",
+        "sources": [
+          {
+            "item": "Loan",
+            "amount": 27000000,
+            "percent": "96.5%"
+          },
+          {
+            "item": "Additional Equity At Closing",
+            "amount": 980876,
+            "percent": "3.5%"
+          }
+        ],
+        "total_sources": 27980876,
+        "uses": [
+          {
+            "category": "Accretive Costs",
+            "items": [
+              {
+                "item": "Refinance",
+                "amount": 24000000
+              },
+              {
+                "item": "Soft Costs to Complete",
+                "amount": 735376
+              },
+              {
+                "item": "Hard Costs to Complete",
+                "amount": 0
+              },
+              {
+                "item": "Construction Draw #1 At Closing",
+                "amount": 0
+              }
+            ]
+          },
+          {
+            "category": "Financing Costs",
+            "items": [
+              {
+                "item": "Interest Reserve**",
+                "amount": 1800000,
+                "rate_pct": 11
+              }
+            ]
+          },
+          {
+            "category": "Closing Costs",
+            "items": [
+              {
+                "item": "Origination Fee",
+                "amount": 270000,
+                "rate_pct": 1
+              },
+              {
+                "item": "Broker Fee",
+                "amount": 135000,
+                "rate_pct": 0.5
+              },
+              {
+                "item": "Closing Costs (Title)*",
+                "amount": 175500,
+                "rate_pct": 0.65
+              },
+              {
+                "item": "Lender Legal*",
+                "amount": 75000
+              },
+              {
+                "item": "Borrower Legal*",
+                "amount": 40000
+              },
+              {
+                "item": "Misc*",
+                "amount": 100000
+              },
+              {
+                "item": "Dollar Tree Litigation Holdback",
+                "amount": 650000
+              }
+            ]
+          }
+        ],
+        "total_uses": 27980876,
+        "notes": [
+          "* Estimated",
+          "**FB intends to sweep all free NOI at property, which should create 18 month coverage period"
+        ]
+      }
+    },
+    "comps": {
+      "table": [
+        {
+          "comparable_sale": "2200-2246 N University Drive",
+          "year_built": 1986,
+          "tax_year": 2024,
+          "assessors_market_value": 11513000,
+          "date_of_sale": "May-24",
+          "sales_price": 12860000,
+          "av_ratio_percent": 90
+        },
+        {
+          "comparable_sale": "8129-8315 N Pine Island Road",
+          "year_built": 1982,
+          "tax_year": 2024,
+          "assessors_market_value": 18247070,
+          "date_of_sale": "Apr-24",
+          "sales_price": 22500000,
+          "av_ratio_percent": 81
+        },
+        {
+          "comparable_sale": "1000 N Federal Highway",
+          "year_built": 2015,
+          "tax_year": 2024,
+          "assessors_market_value": 13310000,
+          "date_of_sale": "Apr-24",
+          "sales_price": 18825000,
+          "av_ratio_percent": 71
+        },
+        {
+          "comparable_sale": "1101-1149 S Military Trail",
+          "year_built": 1998,
+          "tax_year": 2023,
+          "assessors_market_value": 15035430,
+          "date_of_sale": "Aug-22",
+          "sales_price": 17000000,
+          "av_ratio_percent": 88
+        }
+      ],
+      "sales_comps": [
+        {
+          "comparable_sale": "2200-2246 N University Drive",
+          "year_built": 1986,
+          "tax_year": 2024,
+          "assessors_market_value": 11513000,
+          "date_of_sale": "May-24",
+          "sales_price": 12860000,
+          "av_ratio_percent": 90
+        },
+        {
+          "comparable_sale": "8129-8315 N Pine Island Road",
+          "year_built": 1982,
+          "tax_year": 2024,
+          "assessors_market_value": 18247070,
+          "date_of_sale": "Apr-24",
+          "sales_price": 22500000,
+          "av_ratio_percent": 81
+        },
+        {
+          "comparable_sale": "1000 N Federal Highway",
+          "year_built": 2015,
+          "tax_year": 2024,
+          "assessors_market_value": 13310000,
+          "date_of_sale": "Apr-24",
+          "sales_price": 18825000,
+          "av_ratio_percent": 71
+        },
+        {
+          "comparable_sale": "1101-1149 S Military Trail",
+          "year_built": 1998,
+          "tax_year": 2023,
+          "assessors_market_value": 15035430,
+          "date_of_sale": "Aug-22",
+          "sales_price": 17000000,
+          "av_ratio_percent": 88
+        }
+      ],
+      "rent_comps": []
+    },
+    "rent_roll": {
+      "occupancy_rate": "",
+      "total_monthly_rent": "",
+      "total_annual_rent": ""
+    },
+    "construction_budget": {
+      "table": [],
+      "total_budget": "",
+      "hard_costs": "",
+      "soft_costs": ""
+    },
+    "financial_information": {
+      "operating_statements": [],
+      "updated_income_statement": {
+        "effective_gross_income": "",
+        "total_operating_expenses": "",
+        "expense_ratio": "",
+        "noi": ""
+      },
+      "dcf_valuation": {
+        "component": "",
+        "value": "",
+        "value_per_sf": "",
+        "dcf_term_years": "",
+        "year_1_noi": "",
+        "terminal_cap_rate": "",
+        "discount_rate": ""
+      },
+      "total_property_value": {
+        "land_value": "",
+        "retail_value": "",
+        "total": ""
+      },
+      "ltv_metrics": {
+        "ltpp": {
+          "loan_amount": "",
+          "property_value": "",
+          "ltv_pct": ""
+        },
+        "at_closing": {
+          "loan_amount": "",
+          "property_value": "",
+          "ltv_pct": ""
+        },
+        "as_complete": {
+          "loan_amount": "",
+          "property_value": "",
+          "ltv_pct": ""
+        }
+      },
+      "debt_yield": {
+        "as_is_noi": "",
+        "at_closing_pct": "",
+        "fully_drawn_pct": ""
+      }
+    },
+    "exit_strategy_text": "The Sponsor intends to repay Fairbridge's loan through the sale of the Phase I and Phase II development parcels to a residential developer. The strategy involves securing a land use change, after which Phase I will be marketed to merchant builders. If the land use change is not approved, the Sponsor intends to pursue redevelopment under Florida's Live Local Act, in which case the exit would shift to a sale of the entire property, leveraging the by-right residential density."
+  }
+]
