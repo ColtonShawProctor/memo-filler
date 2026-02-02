@@ -1342,6 +1342,16 @@ class DealInputToSchemaMapper:
         out["disbursement_sponsor_equity"] = cd.get("sponsors_equity_at_closing") or ""
         out["disbursement_fairbridge_release"] = cd.get("fairbridge_release_at_closing") or ""
 
+        # Equity partner - extract from deal data or provide safe default
+        equity_partner = self.deal.get("equity_partner") or ""
+        if isinstance(equity_partner, dict):
+            out["equity_partner"] = equity_partner
+        elif isinstance(equity_partner, str):
+            out["equity_partner"] = equity_partner
+        else:
+            # Default to empty string to prevent template undefined errors
+            out["equity_partner"] = ""
+
         # Clean display values for Deal Facts (not full paragraphs)
         lt = self._loan_terms or {}
         interest_rate_raw = lt.get("interest_rate") or self._deal_facts.get("interest_rate") or ""
