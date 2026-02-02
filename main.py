@@ -1338,6 +1338,7 @@ class DealInputToSchemaMapper:
         # Add top-level aliases for cover fields (some templates use direct access)
         cover = out.get("cover", {})
         out["credit_committee"] = cover.get("credit_committee", "")
+        out["credit_commitee"] = cover.get("credit_committee", "")  # Template typo - missing 't'
         out["underwriting_team"] = cover.get("underwriting_team", "")
         out["memo_date"] = cover.get("date", "")
         out["date"] = cover.get("date", "")
