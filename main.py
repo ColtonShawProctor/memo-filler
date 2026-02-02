@@ -1650,7 +1650,8 @@ def prepare_images_for_template(doc: DocxTemplate, images: Dict[str, str]) -> Di
 # Template placeholder names that differ from our schema keys. Add aliases here as we find them.
 # To get the full list of variables the template expects: GET /template-info?template_key=_Templates/FB_Deal_Memo_Template.docx
 TEMPLATE_ALIASES = {
-    "leverage": "leverage_metrics",
+    # "leverage" is already at top-level in the payload, no alias needed
+    # (was incorrectly mapped to "leverage_metrics" which doesn't exist)
 }
 
 
@@ -1811,6 +1812,11 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
                 flat["active_litigation"]["narrative"] = f"{len(cases)} active case(s). See details below."
             else:
                 flat["active_litigation"]["narrative"] = "No active litigation."
+    # CRITICAL: Ensure critical keys are never None (defensive against missing or null payloads)
+    # This prevents "'None' has no attribute 'ltpp'" and similar template rendering errors
+    for critical_key in ("leverage", "deal_facts", "loan_terms"):
+        if critical_key not in flat or flat[critical_key] is None:
+            flat[critical_key] = {}
     return flat
 
 
