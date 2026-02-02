@@ -12,6 +12,7 @@ Version: 2.0.0
 import os
 import re
 import base64
+from copy import deepcopy
 from io import BytesIO
 from typing import Dict, Any, Optional, List
 from datetime import datetime
@@ -21,7 +22,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import boto3
 from botocore.config import Config
-from docxtpl import DocxTemplate, InlineImage, RichText
+from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Inches, Mm
 from PIL import Image
 
@@ -63,6 +64,24 @@ IMAGE_WIDTHS = {
     "IMAGE_FORECLOSURE_DEFAULT": 6.5,
     "IMAGE_FORECLOSURE_NOTE": 6.5,
 }
+
+
+# =============================================================================
+# Jinja Syntax Escaping (prevents LLM-generated text from being parsed as template)
+# =============================================================================
+def escape_jinja_syntax(obj):
+    """Recursively escape Jinja-like syntax in string values to prevent template errors.
+
+    LLM-generated narratives may accidentally contain {{ or {% patterns that would
+    be interpreted as Jinja template syntax, causing rendering errors.
+    """
+    if isinstance(obj, str):
+        return obj.replace('{{', '{ {').replace('}}', '} }').replace('{%', '{ %').replace('%}', '% }')
+    elif isinstance(obj, dict):
+        return {k: escape_jinja_syntax(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [escape_jinja_syntax(item) for item in obj]
+    return obj
 
 
 # =============================================================================
@@ -1906,6 +1925,99 @@ class HealthResponse(BaseModel):
 
 
 # =============================================================================
+# Layer 3 preprocessing (flat variables, markdown stripping, display values)
+# =============================================================================
+def strip_markdown(text: Optional[str]) -> Optional[str]:
+    """Remove markdown formatting from text."""
+    if not text:
+        return text
+    # Remove headers (# ## ### etc)
+    text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
+    # Remove bold markers (**text** or __text__)
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+    text = re.sub(r'__([^_]+)__', r'\1', text)
+    # Remove italic markers (*text* or _text_)
+    text = re.sub(r'\*([^*]+)\*', r'\1', text)
+    text = re.sub(r'_([^_]+)_', r'\1', text)
+    # Remove [GENERATED] prefix if present
+    text = re.sub(r'^\[GENERATED\]\s*', '', text)
+    return text.strip()
+
+
+def extract_first_line_or_value(value: Any) -> str:
+    """If value is a paragraph (multi-line), return first line; else return string value."""
+    if value is None:
+        return ''
+    s = str(value).strip()
+    if not s:
+        return ''
+    first_line = s.split('\n')[0].strip()
+    return first_line
+
+
+def preprocess_layer3_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Preprocess Layer 3 data for template rendering.
+    - Pass-through flat variables (sponsor_table, sources_list, etc.) unchanged
+    - Strips markdown from narratives
+    - Adds display values for Deal Facts
+    - Normalizes due_diligence field name (background_check -> background_check_firm)
+    """
+    result = deepcopy(data)
+
+    # Strip markdown from section narrative fields
+    narrative_fields = [
+        ('transaction_overview', 'narrative'),
+        ('loan_terms', 'narrative'),
+        ('property_overview', 'narrative'),
+        ('location_overview', 'narrative'),
+        ('market_overview', 'narrative'),
+        ('zoning_entitlements', 'narrative'),
+        ('exit_strategy', 'narrative'),
+    ]
+    for section, field in narrative_fields:
+        if section in result and isinstance(result[section], dict) and field in result[section]:
+            result[section] = dict(result[section])
+            result[section][field] = strip_markdown(result[section][field])
+
+    # Strip markdown from top-level narrative fields
+    for field in ('loan_issues_disclosure', 'collaborative_ventures_disclosure'):
+        if field in result and result[field]:
+            result[field] = strip_markdown(result[field])
+
+    # Strip markdown from sponsor bios
+    for sponsor in result.get('sponsors', []):
+        if isinstance(sponsor, dict):
+            for key in ('overview', 'financial_profile', 'track_record'):
+                if key in sponsor and sponsor[key]:
+                    sponsor[key] = strip_markdown(sponsor[key])
+
+    # Add display values for Deal Facts (single-line for template)
+    loan_terms = result.get('loan_terms') or {}
+    if isinstance(loan_terms, dict):
+        ir = loan_terms.get('interest_rate', '')
+        result['interest_rate_display'] = extract_first_line_or_value(ir)
+        result['origination_fee_display'] = loan_terms.get('origination_fee', '')
+        result['exit_fee_display'] = loan_terms.get('exit_fee', '')
+        result['term_display'] = loan_terms.get('term', '')
+        result['extension_display'] = loan_terms.get('extension_option', '')
+    else:
+        result['interest_rate_display'] = ''
+        result['origination_fee_display'] = ''
+        result['exit_fee_display'] = ''
+        result['term_display'] = ''
+        result['extension_display'] = ''
+
+    # Normalize due_diligence: Layer 3 outputs 'background_check', template may expect 'background_check_firm'
+    if 'due_diligence' in result and isinstance(result['due_diligence'], dict):
+        dd = result['due_diligence']
+        if 'background_check' in dd and 'background_check_firm' not in dd:
+            dd['background_check_firm'] = dd['background_check']
+
+    return result
+
+
+# =============================================================================
 # Helper Functions
 # =============================================================================
 def calculate_image_dimensions(image_bytes: bytes, preferred_width: float) -> tuple[float, float]:
@@ -1991,63 +2103,6 @@ def prepare_images_for_template(doc: DocxTemplate, images: Dict[str, str]) -> Di
             print(f"Warning: Failed to prepare image {key}: {e}")
             continue
     return inline_images
-
-
-def format_narrative_as_richtext(text: str, doc: DocxTemplate = None) -> RichText:
-    """
-    Parse narrative text and format as RichText with proper Word styles.
-    Headers: Bold, Times New Roman 11pt
-    Paragraphs: Regular, Times New Roman 11pt
-    """
-    if not text or not isinstance(text, str):
-        return RichText("")
-
-    text = text.strip()
-    rt = RichText()
-
-    # Split into paragraphs
-    paragraphs = re.split(r'\n\s*\n', text)
-
-    for i, para in enumerate(paragraphs):
-        para = para.strip()
-        if not para:
-            continue
-
-        # Add paragraph break (except first)
-        if i > 0:
-            rt.add('\n\n')
-
-        # Detect header patterns
-        is_header = False
-        header_text = para
-
-        # Pattern 1: **Header Text** or \*\*Header Text\*\*
-        bold_match = re.match(r'^[\\\*]*\*\*(.+?)\*\*[\\\*]*\s*$', para)
-        if bold_match:
-            is_header = True
-            header_text = bold_match.group(1).strip()
-
-        # Pattern 2: ALL CAPS short line
-        elif len(para) < 80 and para.isupper():
-            is_header = True
-            header_text = para
-
-        # Pattern 3: Line ending with colon (< 60 chars)
-        elif len(para) < 60 and para.rstrip().endswith(':'):
-            is_header = True
-            header_text = para.rstrip(':')
-
-        if is_header:
-            rt.add(header_text, bold=True, font='Times New Roman', size=22)  # 11pt
-        else:
-            # Clean up markdown artifacts
-            clean_para = re.sub(r'[\\\*]+\*\*(.+?)\*\*[\\\*]*', r'\1', para)
-            clean_para = re.sub(r'\*\*(.+?)\*\*', r'\1', clean_para)
-            clean_para = re.sub(r'\\([#*_])', r'\1', clean_para)
-            clean_para = re.sub(r'\s+', ' ', clean_para).strip()
-            rt.add(clean_para, font='Times New Roman', size=22)  # 11pt
-
-    return rt
 
 
 # Template placeholder names that differ from our schema keys. Add aliases here as we find them.
@@ -2199,42 +2254,16 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
     doc = DocxTemplate(template_stream)
 
     inline_images = prepare_images_for_template(doc, images)
+    # Flatten sections into root so template placeholders like {{ deal_facts }} work
     flat_data = flatten_schema_for_template(data)
-
-    # Apply RichText formatting to narrative fields (headers bold, body Times New Roman 11pt)
-    narrative_paths = [
-        ('transaction_overview', 'narrative'),
-        ('loan_terms', 'narrative'),
-        ('property_overview', 'narrative'),
-        ('property_overview', 'description_narrative'),
-        ('location_overview', 'narrative'),
-        ('location', 'narrative'),
-        ('market_overview', 'narrative'),
-        ('market', 'narrative'),
-        ('zoning_entitlements', 'narrative'),
-        ('zoning_entitlements', 'summary_narrative'),
-        ('exit_strategy', 'narrative'),
-        ('closing_funding_and_reserves', 'narrative'),
-        ('foreclosure_assumptions', 'narrative'),
-        ('risks_and_mitigants', 'recommendation_narrative'),
-        ('insurance', 'narrative'),  # v3: insurance section narrative
-    ]
-
-    for section_key, field_key in narrative_paths:
-        if section_key in flat_data and isinstance(flat_data[section_key], dict):
-            section = flat_data[section_key]
-            if field_key in section and isinstance(section[field_key], str):
-                raw_text = section[field_key]
-                if raw_text and raw_text.strip() and raw_text.strip() != "None":
-                    section[field_key] = format_narrative_as_richtext(raw_text, doc)
-
+    # Escape any Jinja-like syntax in LLM-generated narratives to prevent template errors
+    flat_data = escape_jinja_syntax(flat_data)
     context = {**flat_data, **inline_images}
     if "images" not in context:
         context["images"] = []
     _ensure_items_on_dicts(context)
-
     for k, v in list(context.items()):
-        if isinstance(v, dict) and not hasattr(v, "_d") and not isinstance(v, RichText):
+        if isinstance(v, dict) and not hasattr(v, "_d"):
             context[k] = _DictWithItemsList(v)
 
     if "sponsors" in context and not isinstance(context["sponsors"], list):
@@ -2250,6 +2279,9 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
     try:
         doc.render(context)
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        print(f"Template rendering failed: {e}\n{tb}")
         raise HTTPException(status_code=400, detail=f"Template rendering failed: {str(e)}")
 
     output = BytesIO()
@@ -2268,9 +2300,10 @@ async def health_check():
 
 @app.post("/fill")
 async def fill_template_endpoint(request: FillRequest):
-    """Fill template and return as download."""
+    """Fill template and return as download. Layer 3 flat data is preprocessed (markdown stripped, display values added)."""
     template_bytes = download_template(request.template_key)
-    filled_bytes = fill_template(template_bytes, request.data, request.images)
+    processed_data = preprocess_layer3_data(request.data)
+    filled_bytes = fill_template(template_bytes, processed_data, request.images)
 
     return StreamingResponse(
         BytesIO(filled_bytes),
@@ -2281,9 +2314,10 @@ async def fill_template_endpoint(request: FillRequest):
 
 @app.post("/fill-and-upload")
 async def fill_and_upload_endpoint(request: FillAndUploadRequest):
-    """Fill template and upload to S3."""
+    """Fill template and upload to S3. Layer 3 flat data is preprocessed (markdown stripped, display values added)."""
     template_bytes = download_template(request.template_key)
-    filled_bytes = fill_template(template_bytes, request.data, request.images)
+    processed_data = preprocess_layer3_data(request.data)
+    filled_bytes = fill_template(template_bytes, processed_data, request.images)
     output_key = get_unique_output_key(request.output_key)
     output_url = upload_to_s3(filled_bytes, output_key)
 
@@ -2387,6 +2421,8 @@ def _run_fill_from_deal(
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        print(f"fill-from-deal template error: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=400, detail=f"Template render failed: {str(e)}")
     # 3. Upload filled memo to S3
     try:
