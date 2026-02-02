@@ -583,7 +583,10 @@ class DealInputToSchemaMapper:
                 acq_price = f"${acq_price:,.0f}"
 
             formatted_items.append({
-                "property_address": self._str_or_empty(v.get("property_address")),
+                # Template uses {{ venture.location }} - add alias
+                "location": self._str_or_empty(v.get("property_address")),
+                "name": self._str_or_empty(v.get("property_address")),  # Some templates use name
+                "property_address": self._str_or_empty(v.get("property_address")),  # Keep original
                 "acquisition_date": self._str_or_empty(v.get("acquisition_date") or v.get("acquisition_period")),
                 "acquisition_price": self._str_or_empty(acq_price),
                 "description": self._str_or_empty(v.get("description")),
@@ -601,14 +604,29 @@ class DealInputToSchemaMapper:
         for r in items:
             if not isinstance(r, dict):
                 continue
+            # Template expects: {{ risk.title }}, {{ risk.risk_description }}, {{ risk.mitigation }}
             risk_items.append({
-                "category": r.get("risk", "Risk"),
+                # NEW - Template field names
+                "title": r.get("title") or r.get("risk", "Risk"),
+                "risk_description": r.get("description", ""),
+                "mitigation": r.get("mitigant", ""),
+                # Keep legacy field names for backwards compatibility
+                "category": r.get("title") or r.get("risk", "Risk"),
                 "score": "Moderate",
                 "risk": r.get("description", ""),
                 "mitigant": r.get("mitigant", ""),
             })
         narrative = self._narratives.get("risks_mitigants_narrative") or ""
-        risk_list = risk_items if risk_items else [{"category": "General", "score": "Moderate", "risk": "See risks and mitigants.", "mitigant": "See narrative."}]
+        default_item = {
+            "title": "General Risk Assessment",
+            "risk_description": "See risks and mitigants narrative for details.",
+            "mitigation": "See narrative.",
+            "category": "General",
+            "score": "Moderate",
+            "risk": "See risks and mitigants.",
+            "mitigant": "See narrative.",
+        }
+        risk_list = risk_items if risk_items else [default_item]
         return {
             "overall_risk_score": "MODERATE",
             "recommendation_narrative": (narrative or "")[:2000] if narrative else "Based on the analysis, this transaction presents acceptable risk levels for Fairbridge.",
@@ -622,6 +640,76 @@ class DealInputToSchemaMapper:
             "critical_flags": [],
             "warning_flags": [],
         }
+
+    def _build_table_strings(self) -> Dict[str, Any]:
+        """Generate pre-formatted markdown table strings for template placeholders."""
+        tables = {}
+
+        # Income Statement Table
+        income_items = []
+        financials = self.deal.get("financials") or self.deal.get("property", {}).get("financials") or {}
+        if financials:
+            if financials.get("effective_gross_income"):
+                income_items.append(f"| Effective Gross Income | {self._str_or_empty(financials.get('effective_gross_income'))} |")
+            if financials.get("operating_expenses"):
+                income_items.append(f"| Operating Expenses | {self._str_or_empty(financials.get('operating_expenses'))} |")
+            if financials.get("net_operating_income"):
+                income_items.append(f"| Net Operating Income | {self._str_or_empty(financials.get('net_operating_income'))} |")
+        if income_items:
+            tables["income_statement_table"] = "| Metric | Value |\n|---|---|\n" + "\n".join(income_items)
+        else:
+            tables["income_statement_table"] = ""
+
+        # DCF Table
+        dcf_items = []
+        valuation = self._valuation or self.deal.get("valuation") or {}
+        if valuation:
+            if valuation.get("dcf_value"):
+                dcf_items.append(f"| DCF Value | {self._str_or_empty(valuation.get('dcf_value'))} |")
+            if valuation.get("terminal_cap_rate"):
+                dcf_items.append(f"| Terminal Cap | {self._str_or_empty(valuation.get('terminal_cap_rate'))} |")
+            if valuation.get("discount_rate"):
+                dcf_items.append(f"| Discount Rate | {self._str_or_empty(valuation.get('discount_rate'))} |")
+        if dcf_items:
+            tables["dcf_table"] = "| Component | Value |\n|---|---|\n" + "\n".join(dcf_items)
+        else:
+            tables["dcf_table"] = ""
+
+        # Property Value Table
+        pv_items = []
+        if valuation.get("as_is_value"):
+            pv_items.append(f"| As-Is Value | {self._str_or_empty(valuation.get('as_is_value'))} |")
+        if valuation.get("as_stabilized_value"):
+            pv_items.append(f"| Stabilized Value | {self._str_or_empty(valuation.get('as_stabilized_value'))} |")
+        if valuation.get("land_value"):
+            pv_items.append(f"| Land Value | {self._str_or_empty(valuation.get('land_value'))} |")
+        if pv_items:
+            tables["property_value_table"] = "| Component | Value |\n|---|---|\n" + "\n".join(pv_items)
+        else:
+            tables["property_value_table"] = ""
+
+        # Default Interest Scenario Table
+        default_scenario = self.deal.get("default_scenario") or self.deal.get("foreclosure_analysis") or {}
+        if default_scenario:
+            tables["default_interest_scenario_table"] = "See foreclosure analysis narrative."
+        else:
+            tables["default_interest_scenario_table"] = ""
+
+        # Comps Table
+        comps = self.deal.get("comparable_sales") or self.deal.get("comps") or []
+        if comps and isinstance(comps, list):
+            comp_rows = []
+            for c in comps[:5]:  # Limit to 5 comps
+                if isinstance(c, dict):
+                    comp_rows.append(f"| {c.get('address', 'N/A')} | {c.get('sale_price', 'N/A')} | {c.get('date', 'N/A')} |")
+            if comp_rows:
+                tables["comps_table"] = "| Address | Price | Date |\n|---|---|---|\n" + "\n".join(comp_rows)
+            else:
+                tables["comps_table"] = ""
+        else:
+            tables["comps_table"] = ""
+
+        return tables
 
     def _build_third_party_reports(self) -> Dict[str, Any]:
         return {
@@ -906,7 +994,10 @@ class DealInputToSchemaMapper:
                 acq_price = self._str_or_empty(acq_price)
 
             cv_items.append({
-                "property_address": self._str_or_empty(item.get("property_address")),
+                # Template uses {{ venture.location }} - add alias
+                "location": self._str_or_empty(item.get("property_address")),
+                "name": self._str_or_empty(item.get("property_address")),  # Some templates use name
+                "property_address": self._str_or_empty(item.get("property_address")),  # Keep original
                 "acquisition_date": self._str_or_empty(item.get("acquisition_date") or item.get("acquisition_period")),
                 "acquisition_price": acq_price,
                 "description": self._str_or_empty(item.get("description")),
@@ -944,10 +1035,43 @@ class DealInputToSchemaMapper:
         out["sponsors"] = self._sponsor.get("principals") or []
 
         sources_table = self._sources_uses.get("table") or {}
-        out["sources_list"] = sources_table.get("sources") or self._sources_uses.get("sources") or []
-        out["uses_list"] = sources_table.get("uses") or self._sources_uses.get("uses") or []
-        out["sources_total"] = self._sources_uses.get("total_sources") or self._sources_uses.get("sources_total") or ""
-        out["uses_total"] = self._sources_uses.get("total_uses") or self._sources_uses.get("uses_total") or ""
+
+        # Transform sources to add 'name' field (template uses {{ sources_list[i].name }})
+        raw_sources = sources_table.get("sources") or self._sources_uses.get("sources") or []
+        out["sources_list"] = []
+        for src in raw_sources:
+            if isinstance(src, dict):
+                out["sources_list"].append({
+                    "name": src.get("item") or src.get("name") or src.get("label") or "",  # Template uses 'name'
+                    "amount": self._fmt_currency(src.get("amount")) if isinstance(src.get("amount"), (int, float)) else self._str_or_empty(src.get("amount")),
+                    "percent": src.get("percent") or "",
+                    "item": src.get("item") or "",  # Keep original
+                })
+            else:
+                out["sources_list"].append(src)
+
+        # Transform uses - flatten nested structure
+        raw_uses = sources_table.get("uses") or self._sources_uses.get("uses") or []
+        out["uses_list"] = []
+        for use_entry in raw_uses:
+            if isinstance(use_entry, dict):
+                # Uses may have nested "items" under categories
+                nested_items = use_entry.get("items") or [use_entry]
+                for use_item in nested_items:
+                    if isinstance(use_item, dict):
+                        out["uses_list"].append({
+                            "name": use_item.get("item") or use_item.get("name") or use_item.get("label") or "",
+                            "amount": self._fmt_currency(use_item.get("amount")) if isinstance(use_item.get("amount"), (int, float)) else self._str_or_empty(use_item.get("amount")),
+                            "item": use_item.get("item") or "",
+                        })
+            else:
+                out["uses_list"].append(use_entry)
+
+        # Format totals
+        total_sources = self._sources_uses.get("total_sources") or self._sources_uses.get("sources_total") or sources_table.get("total_sources")
+        total_uses = self._sources_uses.get("total_uses") or self._sources_uses.get("uses_total") or sources_table.get("total_uses")
+        out["sources_total"] = self._fmt_currency(total_sources) if isinstance(total_sources, (int, float)) else self._str_or_empty(total_sources)
+        out["uses_total"] = self._fmt_currency(total_uses) if isinstance(total_uses, (int, float)) else self._str_or_empty(total_uses)
         out["sources_uses_max_rows"] = max(len(out["sources_list"]), len(out["uses_list"]), 1)
 
         cap_stack = self.deal.get("capital_stack") or {}
@@ -1194,6 +1318,34 @@ class DealInputToSchemaMapper:
             lt_section = out["sections"]["loan_terms"]
             if isinstance(lt_section, dict) and "narrative" in lt_section:
                 lt_section["narrative"] = self._strip_markdown(lt_section["narrative"])
+
+        # Generate pre-formatted table strings for template
+        table_strings = self._build_table_strings()
+        out["financial_info"] = out.get("financial_info", {})
+        if isinstance(out["financial_info"], dict):
+            out["financial_info"]["income_statement_table"] = table_strings.get("income_statement_table", "")
+            out["financial_info"]["dcf_table"] = table_strings.get("dcf_table", "")
+        out["property_value"] = out.get("property_value", {})
+        if isinstance(out["property_value"], dict):
+            out["property_value"]["table"] = table_strings.get("property_value_table", "")
+        out["default_interest_scenario"] = out.get("default_interest_scenario", {})
+        if isinstance(out["default_interest_scenario"], dict):
+            out["default_interest_scenario"]["table"] = table_strings.get("default_interest_scenario_table", "")
+        out["comps"] = out.get("comps", {})
+        if isinstance(out["comps"], dict):
+            out["comps"]["table"] = table_strings.get("comps_table", "")
+
+        # Add top-level aliases for cover fields (some templates use direct access)
+        cover = out.get("cover", {})
+        out["credit_committee"] = cover.get("credit_committee", "")
+        out["underwriting_team"] = cover.get("underwriting_team", "")
+        out["memo_date"] = cover.get("date", "")
+        out["date"] = cover.get("date", "")
+
+        # Ensure sponsor_bios and financial_summary are accessible at top level
+        sponsorship = out.get("sections", {}).get("sponsorship", {})
+        out["sponsor_bios"] = sponsorship.get("sponsor_bios", [])
+        out["financial_summary"] = sponsorship.get("financial_summary", [])
         # Add raw Layer 3 fields for templates that use direct property access
         # (e.g. {{ deal_facts_raw.property_type }} or {{ property_type }})
         out["deal_facts_raw"] = self._deal_facts
