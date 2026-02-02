@@ -784,10 +784,21 @@ class DealInputToSchemaMapper:
         return [x.strip() for x in str(s).split(",") if x.strip()]
 
     def _str_or_empty(self, val: Any) -> str:
-        """Return empty string for None; otherwise str(val). Ensures template never shows 'None'."""
+        """Convert value to string, returning empty string for None/null values."""
         if val is None:
             return ""
-        return str(val)
+        if isinstance(val, str):
+            # Clean up "None" and "null" strings
+            if val.strip().lower() in ("none", "null", "undefined", "[not available]", "n/a"):
+                return ""
+            return val.strip()
+        if isinstance(val, (int, float)):
+            return str(val)
+        if isinstance(val, list):
+            return ", ".join(str(v) for v in val if v)
+        if isinstance(val, dict):
+            return str(val)
+        return str(val) if val else ""
 
     def _strip_markdown(self, text: str) -> str:
         """Remove markdown formatting from text."""
@@ -805,16 +816,46 @@ class DealInputToSchemaMapper:
         return text.strip()
 
     def _build_cover(self) -> Dict[str, Any]:
-        addr = self._property.get("address") or {}
-        prop_name = self._str_or_empty(self._property.get("name"))
+        """
+        Build cover page section for template.
+
+        Template expects:
+        - cover.memo_subtitle
+        - cover.property_address
+        - cover.credit_committee
+        - cover.underwriting_team
+        - cover.date
+        """
+        cover_data = self.deal.get("cover", {})
+        property_data = self.deal.get("property", {})
+
+        # Get property address from various sources
+        property_address = (
+            cover_data.get("property_address") or
+            property_data.get("address") or
+            ""
+        )
+        # Handle address if it's a dict
+        if isinstance(property_address, dict):
+            parts = [
+                property_address.get("street", ""),
+                property_address.get("city", ""),
+                property_address.get("state", ""),
+                property_address.get("zip", "")
+            ]
+            property_address = ", ".join(p for p in parts if p)
+
+        # Format date - default to current date if not provided
+        date_str = cover_data.get("date")
+        if not date_str:
+            date_str = datetime.now().strftime("%B %d, %Y")
+
         return {
-            "memo_subtitle": "CREDIT COMMITTEE MEMO",
-            "memo_title": "BRIDGE LOAN REQUEST",
-            "property_name": prop_name,
-            "property_address": self._str_or_empty(self._cover.get("property_address")),
-            "credit_committee": self._split_list(self._cover.get("credit_committee") or ""),
-            "underwriting_team": self._split_list(self._cover.get("underwriting_team") or ""),
-            "memo_date": self._str_or_empty(self._cover.get("date")) or datetime.now().strftime("%B %d, %Y"),
+            "memo_subtitle": cover_data.get("memo_subtitle") or property_address,
+            "property_address": property_address,
+            "credit_committee": self._str_or_empty(cover_data.get("credit_committee")),
+            "underwriting_team": self._str_or_empty(cover_data.get("underwriting_team")),
+            "date": date_str,
         }
 
     def _build_transaction_overview(self) -> Dict[str, Any]:
@@ -956,65 +997,247 @@ class DealInputToSchemaMapper:
         return {"narrative": (narrative or "")[:4000] if isinstance(narrative, str) else str(narrative or "")[:4000]}
 
     def _build_sponsorship(self) -> Dict[str, Any]:
-        print(f"DEBUG _build_sponsorship: self._sponsor = {self._sponsor}")
-        print(f"DEBUG _build_sponsorship: self._sponsor.get('name') = {self._sponsor.get('name')}")
-        guarantors = self._sponsor.get("guarantors") or {}
-        print(f"DEBUG _build_sponsorship: guarantors = {guarantors}")
-        print(f"DEBUG _build_sponsorship: guarantors.get('names') = {guarantors.get('names')}")
-        principals = (self._sponsor.get("principals") or [])
-        sponsors = []
-        for name in (guarantors.get("names") or []):
-            sponsors.append({
-                "name": name,
-                "total_assets": None,
-                "net_worth": guarantors.get("combined_net_worth"),
-                "liquidity": (guarantors.get("combined_cash_position") or 0) + (guarantors.get("combined_securities_holdings") or 0),
-                "cash": guarantors.get("combined_cash_position"),
-                "securities": guarantors.get("combined_securities_holdings"),
+        """
+        Build sponsorship section for template.
+
+        Template expects:
+        - sections.sponsorship.name (string)
+        - sections.sponsorship.table (ownership structure array)
+        - sections.sponsorship.overview_narrative (string)
+        - sections.sponsorship.sponsor_bios (array of bio objects for loop)
+        - sections.sponsorship.financial_summary (array of {label, value} for table)
+        - sections.sponsorship.track_record (array of {property, acquisition_date, acquisition_price, outcome})
+
+        Payload provides:
+        - sponsor.name
+        - sponsor.table
+        - sponsor.guarantors.{names, combined_net_worth, combined_cash_position, combined_securities_holdings}
+        - sponsor.principals[].{name, title, company, credit_score, credit_score_date, net_worth, liquid_assets, experience, notable_projects, civic_involvement, sreo_property_count, sreo_total_value}
+        """
+        sponsor = self._sponsor if hasattr(self, '_sponsor') else self.deal.get("sponsor", {})
+        if not sponsor:
+            sponsor = {}
+
+        guarantors = sponsor.get("guarantors") or {}
+        principals = sponsor.get("principals") or []
+
+        # Ensure principals is a list
+        if isinstance(principals, dict):
+            principals = [principals]
+
+        # ========== 1. SPONSOR NAME ==========
+        sponsor_name = sponsor.get("name") or ""
+        if not sponsor_name and guarantors.get("names"):
+            names = guarantors.get("names")
+            if isinstance(names, list):
+                sponsor_name = " & ".join(str(n) for n in names if n)
+            else:
+                sponsor_name = str(names)
+
+        # ========== 2. OVERVIEW NARRATIVE ==========
+        narratives = self._narratives if hasattr(self, '_narratives') else self.deal.get("narratives", {})
+        overview_narrative = narratives.get("sponsor_narrative") or ""
+        if not overview_narrative:
+            overview_narrative = sponsor_name if sponsor_name else "See sponsor details below."
+
+        # ========== 3. SPONSOR BIOS (for template loop) ==========
+        # Template uses: {% for bio in sections.sponsorship.sponsor_bios %}
+        #   {{ bio.name }}, {{ bio.title }}, {{ bio.company }}, {{ bio.experience }}
+        #   {{ bio.notable_projects }}, {{ bio.civic_involvement }}
+        sponsor_bios = []
+        for p in principals:
+            if not isinstance(p, dict):
+                continue
+
+            # Format credit score with date
+            credit_score = p.get("credit_score")
+            credit_score_date = p.get("credit_score_date", "")
+            credit_display = ""
+            if credit_score:
+                credit_display = f"{credit_score}"
+                if credit_score_date:
+                    credit_display += f" ({credit_score_date})"
+
+            bio = {
+                "name": self._str_or_empty(p.get("name")),
+                "title": self._str_or_empty(p.get("title") or "Principal"),
+                "company": self._str_or_empty(p.get("company") or sponsor_name),
+                "credit_score": credit_display,
+                "net_worth": self._str_or_empty(p.get("net_worth")),
+                "liquid_assets": self._str_or_empty(p.get("liquid_assets")),
+                "sreo_summary": self._format_sreo(p),
+                "experience": self._str_or_empty(p.get("experience") or p.get("bio") or ""),
+                "notable_projects": self._str_or_empty(p.get("notable_projects")),
+                "civic_involvement": self._str_or_empty(p.get("civic_involvement")),
+            }
+            # Only add if we have a name
+            if bio["name"]:
+                sponsor_bios.append(bio)
+
+        # ========== 4. FINANCIAL SUMMARY (for template table loop) ==========
+        # Template uses: {%tr for item in sections.sponsorship.financial_summary %}
+        #   {{ item.label }} | {{ item.value }}
+        financial_summary = []
+
+        # Combined metrics from guarantors
+        if guarantors.get("combined_net_worth"):
+            financial_summary.append({
+                "label": "Combined Net Worth",
+                "value": self._str_or_empty(guarantors.get("combined_net_worth"))
             })
-        if not sponsors and principals:
-            for p in principals:
-                if not isinstance(p, dict):
-                    continue
-                name = p.get("name", "")
-                if not name:
-                    continue
-                fp = p.get("financial_profile") or {}
-                if not isinstance(fp, dict):
-                    fp = {}
-                nw = fp.get("net_worth")
-                liq = fp.get("liquid_assets")
-                sponsors.append({"name": name, "total_assets": None, "net_worth": nw, "liquidity": liq, "cash": liq, "securities": None})
-        # Use parse_currency_to_number to handle currency strings like "$35,610,000"
-        combined_nw = sum(parse_currency_to_number(s.get("net_worth")) for s in sponsors)
-        combined_liq = sum(parse_currency_to_number(s.get("liquidity")) for s in sponsors)
-        financial_summary = [
-            {"label": "COMBINED NET WORTH", "value": self._fmt_currency(guarantors.get("combined_net_worth") or combined_nw)},
-            {"label": "COMBINED LIQUIDITY", "value": self._fmt_currency(combined_liq)},
-        ]
-        for s in sponsors:
-            financial_summary.append({"label": f"{s['name']} - Net Worth", "value": self._fmt_currency(s.get("net_worth"))})
-            financial_summary.append({"label": f"{s['name']} - Liquidity", "value": self._fmt_currency(s.get("liquidity"))})
-        overview = self._narratives.get("sponsor_narrative", "")
-        if not overview:
-            overview = f"The principals are {', '.join(s['name'] for s in sponsors)}. Combined net worth {self._fmt_currency(combined_nw)}, liquidity {self._fmt_currency(combined_liq)}."
-        # Use pre-computed name from Layer 3 if available; otherwise derive from guarantors
-        sponsor_display_name = self._sponsor.get("name")
-        if not sponsor_display_name:
-            sponsor_names = guarantors.get("names", [])
-            sponsor_display_name = " & ".join(str(n) for n in sponsor_names) if sponsor_names else ""
-        if not sponsor_display_name:
-            sponsor_display_name = "See sponsor details"
-        print(f"DEBUG _build_sponsorship RETURN: sponsor_display_name = '{sponsor_display_name}'")
-        print(f"DEBUG _build_sponsorship RETURN: overview_narrative will be = '{sponsor_display_name if sponsor_display_name else 'FALLBACK'}'")
+
+        if guarantors.get("combined_cash_position"):
+            financial_summary.append({
+                "label": "Combined Cash Position",
+                "value": self._str_or_empty(guarantors.get("combined_cash_position"))
+            })
+
+        combined_sec = guarantors.get("combined_securities_holdings") or guarantors.get("combined_securities")
+        if combined_sec:
+            financial_summary.append({
+                "label": "Combined Securities Holdings",
+                "value": self._str_or_empty(combined_sec)
+            })
+
+        # Lender requirements if available
+        if guarantors.get("lender_min_net_worth"):
+            financial_summary.append({
+                "label": "Lender Min Net Worth Req",
+                "value": self._str_or_empty(guarantors.get("lender_min_net_worth"))
+            })
+
+        if guarantors.get("lender_min_liquidity"):
+            financial_summary.append({
+                "label": "Lender Min Liquidity Req",
+                "value": self._str_or_empty(guarantors.get("lender_min_liquidity"))
+            })
+
+        if guarantors.get("guarantees"):
+            financial_summary.append({
+                "label": "Guarantee Type",
+                "value": self._str_or_empty(guarantors.get("guarantees"))
+            })
+
+        # Fallback if no data
+        if not financial_summary:
+            financial_summary = [{"label": "Financial Summary", "value": "See sponsor documentation"}]
+
+        # ========== 5. TRACK RECORD (for template table loop) ==========
+        # Template uses: {%tr for item in sections.sponsorship.track_record %}
+        #   {{ item.property }} | {{ item.acquisition_date }} | {{ item.acquisition_price }} | {{ item.outcome }}
+        track_record = []
+
+        # Get from collaborative_ventures
+        collab_ventures = self.deal.get("collaborative_ventures") or {}
+        ventures = collab_ventures.get("items") or collab_ventures.get("ventures") or []
+        if isinstance(ventures, dict):
+            ventures = [ventures]
+
+        for v in ventures:
+            if not isinstance(v, dict):
+                continue
+
+            # Format acquisition price
+            acq_price = v.get("acquisition_price")
+            if acq_price:
+                if isinstance(acq_price, (int, float)):
+                    acq_price = f"${acq_price:,.0f}"
+                else:
+                    acq_price = str(acq_price)
+
+            record = {
+                "property": self._str_or_empty(
+                    v.get("property_address") or
+                    v.get("property_name") or
+                    v.get("address") or
+                    v.get("name") or
+                    ""
+                ),
+                "acquisition_date": self._str_or_empty(
+                    v.get("acquisition_date") or
+                    v.get("acquisition_period") or
+                    v.get("date") or
+                    ""
+                ),
+                "acquisition_price": self._str_or_empty(acq_price or ""),
+                "outcome": self._str_or_empty(
+                    v.get("status") or
+                    v.get("outcome") or
+                    v.get("current_status") or
+                    ""
+                ),
+            }
+            if record["property"]:
+                track_record.append(record)
+
+        # Fallback if no track record
+        if not track_record:
+            track_record = [{
+                "property": "See sponsor documentation",
+                "acquisition_date": "-",
+                "acquisition_price": "-",
+                "outcome": "-"
+            }]
+
+        # ========== 6. OWNERSHIP TABLE ==========
+        ownership_table = sponsor.get("table") or []
+
         return {
-            "name": sponsor_display_name,
-            "table": self._sponsor.get("table") or [],  # ownership structure table
-            "overview": sponsor_display_name,  # Template uses sponsor.overview
-            "overview_narrative": sponsor_display_name if sponsor_display_name else (overview[:3000] if isinstance(overview, str) else str(overview)[:3000]),
-            "financial_summary": financial_summary if financial_summary else [{"label": "TBD", "value": "TBD"}],
-            "track_record": [{"property": "See sponsor narrative", "role": "Principal", "outcome": "Various"}],
-            "_sponsors_detail": sponsors if sponsors else [{"name": "TBD", "total_assets": None, "net_worth": None, "liquidity": None}],
+            "name": sponsor_name,
+            "table": ownership_table,
+            "overview_narrative": overview_narrative,
+            "sponsor_bios": sponsor_bios,
+            "financial_summary": financial_summary,
+            "track_record": track_record,
+        }
+
+    def _format_sreo(self, principal: dict) -> str:
+        """Format SREO summary from principal data."""
+        count = principal.get("sreo_property_count")
+        value = principal.get("sreo_total_value")
+
+        if not count and not value:
+            return ""
+
+        parts = []
+        if count:
+            parts.append(f"{count} properties")
+        if value:
+            parts.append(f"{value} value")
+
+        return ", ".join(parts) if parts else ""
+
+    def _build_collaborative_ventures(self) -> Dict[str, Any]:
+        """
+        Build collaborative ventures section for template.
+        """
+        collab_ventures = self.deal.get("collaborative_ventures") or {}
+        items = collab_ventures.get("items") or collab_ventures.get("ventures") or []
+
+        if isinstance(items, dict):
+            items = [items]
+
+        formatted_items = []
+        for v in items:
+            if not isinstance(v, dict):
+                continue
+
+            # Format acquisition price
+            acq_price = v.get("acquisition_price")
+            if acq_price and isinstance(acq_price, (int, float)):
+                acq_price = f"${acq_price:,.0f}"
+
+            formatted_items.append({
+                "property_address": self._str_or_empty(v.get("property_address")),
+                "acquisition_date": self._str_or_empty(v.get("acquisition_date") or v.get("acquisition_period")),
+                "acquisition_price": self._str_or_empty(acq_price),
+                "description": self._str_or_empty(v.get("description")),
+                "status": self._str_or_empty(v.get("status")),
+            })
+
+        return {
+            "items": formatted_items,
+            "property_map": collab_ventures.get("property_map") or "",
         }
 
     def _build_risks_and_mitigants(self) -> Dict[str, Any]:
@@ -1304,13 +1527,11 @@ class DealInputToSchemaMapper:
         out["loan_issues_development"] = li.get("development") if isinstance(li.get("development"), list) else []
         out["loan_issues_disclosure"] = li.get("disclosure_statement") or ""
 
+        # Build collaborative ventures using dedicated method
+        cv_built = self._build_collaborative_ventures()
+        out["collaborative_ventures"] = cv_built
+        # Preserve backward compatibility fields
         cv = self.deal.get("collaborative_ventures")
-        if isinstance(cv, dict):
-            out["collaborative_ventures"] = {"items": cv.get("items") or cv.get("ventures") or list(cv.values()) if cv else []}
-        elif isinstance(cv, list):
-            out["collaborative_ventures"] = {"items": cv}
-        else:
-            out["collaborative_ventures"] = {"items": []}
         if isinstance(cv, dict):
             out["collaborative_ventures_list"] = cv.get("items") or cv.get("ventures") or list(cv.values()) or []
             out["collaborative_ventures_disclosure"] = cv.get("disclosure_statement") or ""
@@ -1318,7 +1539,7 @@ class DealInputToSchemaMapper:
             out["collaborative_ventures_list"] = cv
             out["collaborative_ventures_disclosure"] = ""
         else:
-            out["collaborative_ventures_list"] = []
+            out["collaborative_ventures_list"] = cv_built.get("items", [])
             out["collaborative_ventures_disclosure"] = ""
 
         # Flatten capital_stack into iterable arrays for Jinja (avoid raw dict in template)
