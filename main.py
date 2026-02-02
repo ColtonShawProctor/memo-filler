@@ -1106,7 +1106,13 @@ class DealInputToSchemaMapper:
             scenario_default = {"rows": rows, "assumptions": {}, "metrics": {}}
             scenario_note = {"rows": rows, "assumptions": {}, "metrics": {}}
         
-        return {"scenario_default_rate": scenario_default, "scenario_note_rate": scenario_note}
+        # Template may access default_interest_scenario directly from foreclosure_analysis
+        return {
+            "scenario_default_rate": scenario_default,
+            "scenario_note_rate": scenario_note,
+            "default_interest_scenario": scenario_default,  # Alias for template access
+            "note_interest_scenario": scenario_note  # Alias for template access
+        }
 
     def _build_litigation(self) -> Dict[str, Any]:
         """Build litigation section for template. Template expects sections.litigation with has_litigation, narrative, cases."""
@@ -1882,9 +1888,29 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
         flat["sources_and_uses"] = sections["sources_and_uses"]
     if "property_overview" not in flat and "property" in sections:
         flat["property_overview"] = sections["property"]
-    for section_name in ("zoning_entitlements", "risks_and_mitigants", "third_party_reports", "validation_flags", "foreclosure_analysis", "location", "market"):
+    for section_name in ("zoning_entitlements", "risks_and_mitigants", "third_party_reports", "validation_flags", "location", "market"):
         if section_name not in flat and section_name in sections:
             flat[section_name] = sections[section_name]
+    # Handle foreclosure_analysis specially to ensure default_interest_scenario has assumptions
+    if "foreclosure_analysis" not in flat and "foreclosure_analysis" in sections:
+        fa = sections["foreclosure_analysis"]
+        # Ensure default_interest_scenario exists with assumptions
+        if isinstance(fa, dict):
+            if "default_interest_scenario" not in fa or fa.get("default_interest_scenario") is None:
+                fa["default_interest_scenario"] = {"rows": [], "assumptions": {}, "metrics": {}}
+            elif isinstance(fa.get("default_interest_scenario"), dict):
+                if "assumptions" not in fa["default_interest_scenario"]:
+                    fa["default_interest_scenario"]["assumptions"] = {}
+                if "metrics" not in fa["default_interest_scenario"]:
+                    fa["default_interest_scenario"]["metrics"] = {}
+            if "note_interest_scenario" not in fa or fa.get("note_interest_scenario") is None:
+                fa["note_interest_scenario"] = {"rows": [], "assumptions": {}, "metrics": {}}
+            elif isinstance(fa.get("note_interest_scenario"), dict):
+                if "assumptions" not in fa["note_interest_scenario"]:
+                    fa["note_interest_scenario"]["assumptions"] = {}
+                if "metrics" not in fa["note_interest_scenario"]:
+                    fa["note_interest_scenario"]["metrics"] = {}
+        flat["foreclosure_analysis"] = fa
     if "location_overview" not in flat and "location" in sections:
         flat["location_overview"] = sections["location"]
     if "market_overview" not in flat and "market" in sections:
