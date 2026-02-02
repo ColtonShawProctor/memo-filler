@@ -250,44 +250,16 @@ class DealInputToSchemaMapper:
         return text.strip()
 
     def _build_cover(self) -> Dict[str, Any]:
-        """
-        Build cover page section for template.
-
-        Template expects:
-        - cover.memo_subtitle
-        - cover.property_address
-        - cover.credit_committee
-        - cover.underwriting_team
-        - cover.date
-        """
-        cover_data = self._cover or self.deal.get("cover", {})
-        property_data = self._property or self.deal.get("property", {})
-
-        # Get property address from various sources
-        property_address = (
-            cover_data.get("property_address") or
-            property_data.get("address") or
-            ""
-        )
-        # Handle address if it's a dict
-        if isinstance(property_address, dict):
-            parts = [
-                property_address.get("street", ""),
-                property_address.get("city", ""),
-                property_address.get("state", ""),
-                property_address.get("zip", "")
-            ]
-            property_address = ", ".join(p for p in parts if p)
-
-        # Format date - default to current date if not provided
-        date_str = self._str_or_empty(self._cover.get("date")) or self._str_or_empty(cover_data.get("date")) or datetime.now().strftime("%B %d, %Y")
-
+        addr = self._property.get("address") or {}
+        prop_name = self._str_or_empty(self._property.get("name"))
         return {
-            "memo_subtitle": cover_data.get("memo_subtitle") or property_address,
-            "property_address": property_address,
+            "memo_subtitle": "CREDIT COMMITTEE MEMO",
+            "memo_title": "BRIDGE LOAN REQUEST",
+            "property_name": prop_name,
+            "property_address": self._str_or_empty(self._cover.get("property_address")),
             "credit_committee": self._str_or_empty(self._cover.get("credit_committee")),
             "underwriting_team": self._str_or_empty(self._cover.get("underwriting_team")),
-            "date": date_str,
+            "date": self._str_or_empty(self._cover.get("date")) or datetime.now().strftime("%B %d, %Y"),
         }
 
     def _build_transaction_overview(self) -> Dict[str, Any]:
@@ -429,56 +401,41 @@ class DealInputToSchemaMapper:
         return {"narrative": (narrative or "")[:4000] if isinstance(narrative, str) else str(narrative or "")[:4000]}
 
     def _build_sponsorship(self) -> Dict[str, Any]:
-        """
-        Build sponsorship section for template.
-
-        Template expects:
-        - sections.sponsorship.name (string)
-        - sections.sponsorship.table (ownership structure array)
-        - sections.sponsorship.overview_narrative (string)
-        - sections.sponsorship.sponsor_bios (array of bio objects for loop)
-        - sections.sponsorship.financial_summary (array of {label, value} for table)
-        - sections.sponsorship.track_record (array of {property, acquisition_date, acquisition_price, outcome})
-
-        Payload provides:
-        - sponsor.name
-        - sponsor.table
-        - sponsor.guarantors.{names, combined_net_worth, combined_cash_position, combined_securities_holdings}
-        - sponsor.principals[].{name, title, company, credit_score, credit_score_date, net_worth, liquid_assets, experience, notable_projects, civic_involvement, sreo_property_count, sreo_total_value}
-        """
-        sponsor = self._sponsor if hasattr(self, '_sponsor') else self.deal.get("sponsor", {})
-        if not sponsor:
-            sponsor = {}
-
-        guarantors = sponsor.get("guarantors") or {}
-        principals = sponsor.get("principals") or []
+        """Build sponsorship section with sponsor_bios, financial_summary, and track_record."""
+        guarantors = self._sponsor.get("guarantors") or {}
+        principals = self._sponsor.get("principals") or []
 
         # Ensure principals is a list
         if isinstance(principals, dict):
             principals = [principals]
 
-        # ========== 1. SPONSOR NAME ==========
-        sponsor_name = sponsor.get("name") or ""
-        if not sponsor_name and guarantors.get("names"):
-            names = guarantors.get("names")
-            if isinstance(names, list):
-                sponsor_name = " & ".join(str(n) for n in names if n)
-            else:
-                sponsor_name = str(names)
+        # Build sponsors list for backward compatibility
+        sponsors = []
+        for name in (guarantors.get("names") or []):
+            sponsors.append({
+                "name": name,
+                "net_worth": guarantors.get("combined_net_worth"),
+                "liquidity": None,
+            })
 
-        # ========== 2. OVERVIEW NARRATIVE ==========
-        narratives = self._narratives if hasattr(self, '_narratives') else self.deal.get("narratives", {})
-        overview_narrative = narratives.get("sponsor_narrative") or ""
-        if not overview_narrative:
-            overview_narrative = sponsor_name if sponsor_name else "See sponsor details below."
+        # Get sponsor display name
+        sponsor_display_name = self._sponsor.get("name")
+        if not sponsor_display_name:
+            sponsor_names = guarantors.get("names", [])
+            sponsor_display_name = " & ".join(str(n) for n in sponsor_names) if sponsor_names else "See sponsor details"
 
-        # ========== 3. SPONSOR BIOS (for template loop) ==========
-        # Template uses: {% for bio in sections.sponsorship.sponsor_bios %}
-        #   {{ bio.name }}, {{ bio.title }}, {{ bio.company }}, {{ bio.experience }}
-        #   {{ bio.notable_projects }}, {{ bio.civic_involvement }}
+        # Overview narrative
+        overview = self._narratives.get("sponsor_narrative", "")
+
+        # ==========================================================
+        # BUILD sponsor_bios FROM principals
+        # ==========================================================
         sponsor_bios = []
         for p in principals:
             if not isinstance(p, dict):
+                continue
+            name = p.get("name", "")
+            if not name:
                 continue
 
             # Format credit score with date
@@ -490,28 +447,36 @@ class DealInputToSchemaMapper:
                 if credit_score_date:
                     credit_display += f" ({credit_score_date})"
 
-            bio = {
-                "name": self._str_or_empty(p.get("name")),
-                "title": self._str_or_empty(p.get("title") or "Principal"),
-                "company": self._str_or_empty(p.get("company") or sponsor_name),
+            # Format SREO summary
+            sreo_count = p.get("sreo_property_count", "")
+            sreo_value = p.get("sreo_total_value", "")
+            sreo_summary = ""
+            if sreo_count or sreo_value:
+                parts = []
+                if sreo_count:
+                    parts.append(f"{sreo_count} properties")
+                if sreo_value:
+                    parts.append(f"{sreo_value} value")
+                sreo_summary = ", ".join(parts)
+
+            sponsor_bios.append({
+                "name": name,
+                "title": self._str_or_empty(p.get("title")) or "Principal",
+                "company": self._str_or_empty(p.get("company")) or sponsor_display_name,
                 "credit_score": credit_display,
                 "net_worth": self._str_or_empty(p.get("net_worth")),
                 "liquid_assets": self._str_or_empty(p.get("liquid_assets")),
-                "sreo_summary": self._format_sreo(p),
-                "experience": self._str_or_empty(p.get("experience") or p.get("bio") or ""),
+                "sreo_summary": sreo_summary,
+                "experience": self._str_or_empty(p.get("experience")),
                 "notable_projects": self._str_or_empty(p.get("notable_projects")),
                 "civic_involvement": self._str_or_empty(p.get("civic_involvement")),
-            }
-            # Only add if we have a name
-            if bio["name"]:
-                sponsor_bios.append(bio)
+            })
 
-        # ========== 4. FINANCIAL SUMMARY (for template table loop) ==========
-        # Template uses: {%tr for item in sections.sponsorship.financial_summary %}
-        #   {{ item.label }} | {{ item.value }}
+        # ==========================================================
+        # BUILD financial_summary
+        # ==========================================================
         financial_summary = []
 
-        # Combined metrics from guarantors
         if guarantors.get("combined_net_worth"):
             financial_summary.append({
                 "label": "Combined Net Worth",
@@ -524,42 +489,19 @@ class DealInputToSchemaMapper:
                 "value": self._str_or_empty(guarantors.get("combined_cash_position"))
             })
 
-        combined_sec = guarantors.get("combined_securities_holdings") or guarantors.get("combined_securities")
-        if combined_sec:
+        if guarantors.get("combined_securities_holdings"):
             financial_summary.append({
                 "label": "Combined Securities Holdings",
-                "value": self._str_or_empty(combined_sec)
+                "value": self._str_or_empty(guarantors.get("combined_securities_holdings"))
             })
 
-        # Lender requirements if available
-        if guarantors.get("lender_min_net_worth"):
-            financial_summary.append({
-                "label": "Lender Min Net Worth Req",
-                "value": self._str_or_empty(guarantors.get("lender_min_net_worth"))
-            })
-
-        if guarantors.get("lender_min_liquidity"):
-            financial_summary.append({
-                "label": "Lender Min Liquidity Req",
-                "value": self._str_or_empty(guarantors.get("lender_min_liquidity"))
-            })
-
-        if guarantors.get("guarantees"):
-            financial_summary.append({
-                "label": "Guarantee Type",
-                "value": self._str_or_empty(guarantors.get("guarantees"))
-            })
-
-        # Fallback if no data
         if not financial_summary:
             financial_summary = [{"label": "Financial Summary", "value": "See sponsor documentation"}]
 
-        # ========== 5. TRACK RECORD (for template table loop) ==========
-        # Template uses: {%tr for item in sections.sponsorship.track_record %}
-        #   {{ item.property }} | {{ item.acquisition_date }} | {{ item.acquisition_price }} | {{ item.outcome }}
+        # ==========================================================
+        # BUILD track_record FROM collaborative_ventures
+        # ==========================================================
         track_record = []
-
-        # Get from collaborative_ventures
         collab_ventures = self.deal.get("collaborative_ventures") or {}
         ventures = collab_ventures.get("items") or collab_ventures.get("ventures") or []
         if isinstance(ventures, dict):
@@ -571,56 +513,37 @@ class DealInputToSchemaMapper:
 
             # Format acquisition price
             acq_price = v.get("acquisition_price")
-            if acq_price:
-                if isinstance(acq_price, (int, float)):
-                    acq_price = f"${acq_price:,.0f}"
-                else:
-                    acq_price = str(acq_price)
+            if acq_price and isinstance(acq_price, (int, float)):
+                acq_price = f"${acq_price:,.0f}"
+            else:
+                acq_price = self._str_or_empty(acq_price)
 
-            record = {
-                "property": self._str_or_empty(
-                    v.get("property_address") or
-                    v.get("property_name") or
-                    v.get("address") or
-                    v.get("name") or
-                    ""
-                ),
-                "acquisition_date": self._str_or_empty(
-                    v.get("acquisition_date") or
-                    v.get("acquisition_period") or
-                    v.get("date") or
-                    ""
-                ),
-                "acquisition_price": self._str_or_empty(acq_price or ""),
-                "outcome": self._str_or_empty(
-                    v.get("status") or
-                    v.get("outcome") or
-                    v.get("current_status") or
-                    ""
-                ),
-            }
-            if record["property"]:
-                track_record.append(record)
+            prop_addr = self._str_or_empty(
+                v.get("property_address") or
+                v.get("address") or
+                v.get("property_name") or
+                ""
+            )
+            if prop_addr:
+                track_record.append({
+                    "property": prop_addr,
+                    "acquisition_date": self._str_or_empty(v.get("acquisition_date") or v.get("acquisition_period") or ""),
+                    "acquisition_price": acq_price,
+                    "outcome": self._str_or_empty(v.get("status") or v.get("outcome") or ""),
+                })
 
-        # Fallback if no track record
         if not track_record:
-            track_record = [{
-                "property": "See sponsor documentation",
-                "acquisition_date": "-",
-                "acquisition_price": "-",
-                "outcome": "-"
-            }]
-
-        # ========== 6. OWNERSHIP TABLE ==========
-        ownership_table = sponsor.get("table") or []
+            track_record = [{"property": "See sponsor documentation", "acquisition_date": "-", "acquisition_price": "-", "outcome": "-"}]
 
         return {
-            "name": sponsor_name,
-            "table": ownership_table,
-            "overview_narrative": overview_narrative,
+            "name": sponsor_display_name,
+            "table": self._sponsor.get("table") or [],
+            "overview": sponsor_display_name,
+            "overview_narrative": overview[:3000] if overview else sponsor_display_name,
             "sponsor_bios": sponsor_bios,
             "financial_summary": financial_summary,
             "track_record": track_record,
+            "_sponsors_detail": sponsors if sponsors else [],
         }
 
     def _format_sreo(self, principal: dict) -> str:
@@ -979,11 +902,13 @@ class DealInputToSchemaMapper:
             acq_price = item.get("acquisition_price")
             if acq_price and isinstance(acq_price, (int, float)):
                 acq_price = f"${acq_price:,.0f}"
+            else:
+                acq_price = self._str_or_empty(acq_price)
 
             cv_items.append({
                 "property_address": self._str_or_empty(item.get("property_address")),
                 "acquisition_date": self._str_or_empty(item.get("acquisition_date") or item.get("acquisition_period")),
-                "acquisition_price": self._str_or_empty(acq_price),
+                "acquisition_price": acq_price,
                 "description": self._str_or_empty(item.get("description")),
                 "status": self._str_or_empty(item.get("status")),
             })
