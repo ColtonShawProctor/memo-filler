@@ -21,7 +21,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import boto3
 from botocore.config import Config
-from docxtpl import DocxTemplate, InlineImage
+from docxtpl import DocxTemplate, InlineImage, RichText
 from docx.shared import Inches, Mm
 from PIL import Image
 
@@ -747,16 +747,18 @@ class DealInputToSchemaMapper:
         return str(val)
 
     def _strip_markdown(self, text: str) -> str:
-        """Remove markdown formatting from text."""
+        """Remove markdown formatting from text, including escaped sequences."""
         if not isinstance(text, str):
             return str(text) if text else ""
+        # Remove escaped markdown first (\*\*text\*\*)
+        text = re.sub(r'\\\*\\\*(.+?)\\\*\\\*', r'\1', text)
+        text = re.sub(r'\\\*(.+?)\\\*', r'\1', text)
+        text = re.sub(r'\\([#*_])', r'\1', text)
         # Remove headers (# ## ###)
         text = re.sub(r'^#{1,6}\s*', '', text, flags=re.MULTILINE)
         # Remove bold/italic markers
         text = re.sub(r'\*{1,2}([^*]+)\*{1,2}', r'\1', text)
         text = re.sub(r'_{1,2}([^_]+)_{1,2}', r'\1', text)
-        # Remove escaped characters
-        text = text.replace('\\#', '#').replace('\\*', '*').replace('\\_', '_')
         # Clean up extra whitespace
         text = re.sub(r'\n{3,}', '\n\n', text)
         return text.strip()
@@ -974,19 +976,28 @@ class DealInputToSchemaMapper:
         }
 
     def _build_risks_and_mitigants(self) -> Dict[str, Any]:
+        """
+        FIXED: Uses 'title' field from Layer 3 for risk names.
+        Layer 3 sends: { "title": "Entitlement Risk", "description": "...", "mitigant": "..." }
+        """
         items = (self._risks.get("items") or [])
         risk_items = []
         for r in items:
             if not isinstance(r, dict):
                 continue
+            # FIX: Use 'title' for risk name, fall back to other fields
+            risk_name = r.get("title") or r.get("risk") or r.get("risk_title") or ""
+            risk_desc = r.get("description", "")
+            mitigant = r.get("mitigant") or r.get("mitigation") or ""
             risk_items.append({
-                "category": r.get("risk", "Risk"),
+                "category": risk_name,
                 "score": "Moderate",
-                "risk": r.get("description", ""),
-                "mitigant": r.get("mitigant", ""),
+                "risk": risk_name,  # Template uses {{ item.risk }} for the title
+                "description": risk_desc,
+                "mitigant": mitigant,
             })
         narrative = self._narratives.get("risks_mitigants_narrative") or ""
-        risk_list = risk_items if risk_items else [{"category": "General", "score": "Moderate", "risk": "See risks and mitigants.", "mitigant": "See narrative."}]
+        risk_list = risk_items if risk_items else [{"category": "General", "score": "Moderate", "risk": "See risks and mitigants.", "description": "", "mitigant": "See narrative."}]
         return {
             "overall_risk_score": "MODERATE",
             "recommendation_narrative": (narrative or "")[:2000] if narrative else "Based on the analysis, this transaction presents acceptable risk levels for Fairbridge.",
@@ -1455,6 +1466,63 @@ def prepare_images_for_template(doc: DocxTemplate, images: Dict[str, str]) -> Di
     return inline_images
 
 
+def format_narrative_as_richtext(text: str, doc: DocxTemplate = None) -> RichText:
+    """
+    Parse narrative text and format as RichText with proper Word styles.
+    Headers: Bold, Times New Roman 11pt
+    Paragraphs: Regular, Times New Roman 11pt
+    """
+    if not text or not isinstance(text, str):
+        return RichText("")
+
+    text = text.strip()
+    rt = RichText()
+
+    # Split into paragraphs
+    paragraphs = re.split(r'\n\s*\n', text)
+
+    for i, para in enumerate(paragraphs):
+        para = para.strip()
+        if not para:
+            continue
+
+        # Add paragraph break (except first)
+        if i > 0:
+            rt.add('\n\n')
+
+        # Detect header patterns
+        is_header = False
+        header_text = para
+
+        # Pattern 1: **Header Text** or \*\*Header Text\*\*
+        bold_match = re.match(r'^[\\\*]*\*\*(.+?)\*\*[\\\*]*\s*$', para)
+        if bold_match:
+            is_header = True
+            header_text = bold_match.group(1).strip()
+
+        # Pattern 2: ALL CAPS short line
+        elif len(para) < 80 and para.isupper():
+            is_header = True
+            header_text = para
+
+        # Pattern 3: Line ending with colon (< 60 chars)
+        elif len(para) < 60 and para.rstrip().endswith(':'):
+            is_header = True
+            header_text = para.rstrip(':')
+
+        if is_header:
+            rt.add(header_text, bold=True, font='Times New Roman', size=22)  # 11pt
+        else:
+            # Clean up markdown artifacts
+            clean_para = re.sub(r'[\\\*]+\*\*(.+?)\*\*[\\\*]*', r'\1', para)
+            clean_para = re.sub(r'\*\*(.+?)\*\*', r'\1', clean_para)
+            clean_para = re.sub(r'\\([#*_])', r'\1', clean_para)
+            clean_para = re.sub(r'\s+', ' ', clean_para).strip()
+            rt.add(clean_para, font='Times New Roman', size=22)  # 11pt
+
+    return rt
+
+
 # Template placeholder names that differ from our schema keys. Add aliases here as we find them.
 # To get the full list of variables the template expects: GET /template-info?template_key=_Templates/FB_Deal_Memo_Template.docx
 TEMPLATE_ALIASES = {
@@ -1604,18 +1672,47 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
     doc = DocxTemplate(template_stream)
 
     inline_images = prepare_images_for_template(doc, images)
-    # Flatten sections into root so template placeholders like {{ deal_facts }} work
     flat_data = flatten_schema_for_template(data)
+
+    # Apply RichText formatting to narrative fields
+    narrative_paths = [
+        ('transaction_overview', 'narrative'),
+        ('loan_terms', 'narrative'),
+        ('property_overview', 'narrative'),
+        ('property_overview', 'description_narrative'),
+        ('location_overview', 'narrative'),
+        ('location', 'narrative'),
+        ('market_overview', 'narrative'),
+        ('market', 'narrative'),
+        ('zoning_entitlements', 'narrative'),
+        ('zoning_entitlements', 'summary_narrative'),
+        ('exit_strategy', 'narrative'),
+        ('closing_funding_and_reserves', 'narrative'),
+        ('foreclosure_assumptions', 'narrative'),
+        ('risks_and_mitigants', 'recommendation_narrative'),
+    ]
+
+    for section_key, field_key in narrative_paths:
+        if section_key in flat_data and isinstance(flat_data[section_key], dict):
+            section = flat_data[section_key]
+            if field_key in section and isinstance(section[field_key], str):
+                raw_text = section[field_key]
+                if raw_text and raw_text.strip() and raw_text.strip() != "None":
+                    section[field_key] = format_narrative_as_richtext(raw_text, doc)
+
     context = {**flat_data, **inline_images}
     if "images" not in context:
         context["images"] = []
     _ensure_items_on_dicts(context)
+
     for k, v in list(context.items()):
-        if isinstance(v, dict) and not hasattr(v, "_d"):
+        if isinstance(v, dict) and not hasattr(v, "_d") and not isinstance(v, RichText):
             context[k] = _DictWithItemsList(v)
+
     if "sponsors" in context and not isinstance(context["sponsors"], list):
         v = context["sponsors"]
         context["sponsors"] = list(v.values()) if isinstance(v, dict) else (list(v) if hasattr(v, "__iter__") and not isinstance(v, str) else [])
+
     if "loan_issues" in context and isinstance(context["loan_issues"], dict):
         li = context["loan_issues"]
         for k in ("income_producing", "development"):
