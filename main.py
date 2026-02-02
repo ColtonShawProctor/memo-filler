@@ -69,31 +69,27 @@ IMAGE_WIDTHS = {
 # =============================================================================
 # Jinja Syntax Escaping (prevents LLM-generated text from being parsed as template)
 # =============================================================================
-def escape_jinja_syntax(obj):
-    """Recursively escape Jinja-like syntax in string values to prevent template errors.
-
-    LLM-generated narratives may accidentally contain {{ or {% patterns that would
-    be interpreted as Jinja template syntax, causing rendering errors.
-    """
+def escape_jinja_syntax(obj, path="root"):
+    """Recursively escape Jinja-like syntax in string values to prevent template errors."""
     if isinstance(obj, str):
+        if '{{' in obj or '{%' in obj:
+            print(f"ESCAPE_JINJA: Found Jinja syntax at {path}: {obj[:200]}...")
         return obj.replace('{{', '{ {').replace('}}', '} }').replace('{%', '{ %').replace('%}', '% }')
     elif isinstance(obj, dict):
-        return {k: escape_jinja_syntax(v) for k, v in obj.items()}
+        return {k: escape_jinja_syntax(v, f"{path}.{k}") for k, v in obj.items()}
     elif isinstance(obj, list):
-        return [escape_jinja_syntax(item) for item in obj]
+        return [escape_jinja_syntax(item, f"{path}[{i}]") for i, item in enumerate(obj)]
     return obj
 
 
-def _coerce_number(value: Any) -> float:
-    """Coerce API/JSON value to float for arithmetic. Strings like '$1,000' or '1.5' become numbers."""
-    if value is None:
-        return 0.0
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, str):
-        s = value.replace("$", "").replace(",", "").strip()
+def parse_currency_to_number(val) -> float:
+    """Convert currency string like '$35,610,000' to a number."""
+    if isinstance(val, (int, float)):
+        return float(val)
+    if isinstance(val, str):
+        cleaned = val.replace('$', '').replace(',', '').strip()
         try:
-            return float(s)
+            return float(cleaned) if cleaned else 0.0
         except ValueError:
             return 0.0
     return 0.0
@@ -428,7 +424,7 @@ class Layer2ToSchemaMapper:
 
             net_worth = liabilities_section.get('net_worth', 0)
             if not net_worth and total_assets:
-                net_worth = _coerce_number(total_assets) - _coerce_number(total_liabilities)
+                net_worth = total_assets - (total_liabilities or 0)
 
             # Extract liquidity
             cash = assets.get('cash_and_cash_equivalents', 0)
@@ -445,7 +441,7 @@ class Layer2ToSchemaMapper:
                         securities = item.get('value', 0)
                         break
 
-            liquidity = _coerce_number(cash) + _coerce_number(securities)
+            liquidity = (cash or 0) + (securities or 0)
 
             if total_assets or net_worth:
                 sponsors.append({
@@ -476,12 +472,12 @@ class Layer2ToSchemaMapper:
                         sponsors.append({"name": name, "total_assets": None, "net_worth": None, "liquidity": None})
 
                     financial_summary.append({"label": "Combined Net Worth (Guarantors)", "value": self._format_currency(combined_nw)})
-                    financial_summary.append({"label": "Combined Liquidity", "value": self._format_currency(_coerce_number(combined_cash) + _coerce_number(combined_securities))})
+                    financial_summary.append({"label": "Combined Liquidity", "value": self._format_currency((combined_cash or 0) + (combined_securities or 0))})
                     break
 
-        # Calculate combined totals
-        combined_net_worth = sum(_coerce_number(s.get('net_worth')) for s in sponsors)
-        combined_liquidity = sum(_coerce_number(s.get('liquidity')) for s in sponsors)
+        # Calculate combined totals (parse currency strings to numbers)
+        combined_net_worth = sum(parse_currency_to_number(s.get('net_worth')) for s in sponsors)
+        combined_liquidity = sum(parse_currency_to_number(s.get('liquidity')) for s in sponsors)
 
         if sponsors and combined_net_worth > 0:
             financial_summary.insert(0, {"label": "COMBINED NET WORTH", "value": self._format_currency(combined_net_worth)})
@@ -959,7 +955,7 @@ class DealInputToSchemaMapper:
                 "name": name,
                 "total_assets": None,
                 "net_worth": guarantors.get("combined_net_worth"),
-                "liquidity": _coerce_number(guarantors.get("combined_cash_position")) + _coerce_number(guarantors.get("combined_securities_holdings")),
+                "liquidity": (guarantors.get("combined_cash_position") or 0) + (guarantors.get("combined_securities_holdings") or 0),
                 "cash": guarantors.get("combined_cash_position"),
                 "securities": guarantors.get("combined_securities_holdings"),
             })
@@ -976,8 +972,8 @@ class DealInputToSchemaMapper:
                 nw = fp.get("net_worth")
                 liq = fp.get("liquid_assets")
                 sponsors.append({"name": name, "total_assets": None, "net_worth": nw, "liquidity": liq, "cash": liq, "securities": None})
-        combined_nw = sum(_coerce_number(s.get("net_worth")) for s in sponsors)
-        combined_liq = sum(_coerce_number(s.get("liquidity")) for s in sponsors)
+        combined_nw = sum(parse_currency_to_number(s.get("net_worth")) for s in sponsors)
+        combined_liq = sum(parse_currency_to_number(s.get("liquidity")) for s in sponsors)
         financial_summary = [
             {"label": "COMBINED NET WORTH", "value": self._fmt_currency(guarantors.get("combined_net_worth") or combined_nw)},
             {"label": "COMBINED LIQUIDITY", "value": self._fmt_currency(combined_liq)},
@@ -1750,6 +1746,16 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
         for k in ("income_producing", "development"):
             if k in li and li[k] is not None and not isinstance(li[k], list):
                 li[k] = []
+
+    # Debug: Check for any remaining Jinja syntax in context
+    import json
+    context_str = json.dumps(context, default=str)
+    if '{{' in context_str or '{%' in context_str:
+        # Find where
+        for match in ['{{', '{%']:
+            idx = context_str.find(match)
+            if idx >= 0:
+                print(f"WARNING: Found {match} in context at position {idx}: ...{context_str[max(0,idx-50):idx+100]}...")
 
     try:
         doc.render(context)
