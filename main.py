@@ -1361,7 +1361,7 @@ class DealInputToSchemaMapper:
         for key, val in self._deal_facts.items():
             if key not in out:
                 out[key] = val
-        for key, val in self._leverage.items():
+        for key, val in (self._leverage or {}).items():
             if key not in out:
                 out[key] = val
         for key, val in (self._loan_terms or {}).items():
