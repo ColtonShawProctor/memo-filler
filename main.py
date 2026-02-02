@@ -661,6 +661,13 @@ class DealInputToSchemaMapper:
         self._due_diligence = deal.get("due_diligence") or {}
         self._environmental = deal.get("environmental") or {}
         self._zoning = deal.get("zoning") or {}
+        self._guarantor_financials = deal.get("guarantor_financials", {})
+        self._principal_financials = deal.get("principal_financials", [])
+        self._equity_partner = deal.get("equity_partner", {})
+        self._foreclosure_analysis = deal.get("foreclosure_analysis", {})
+        self._financial_information = deal.get("financial_information", {})
+        self._credit_report = deal.get("credit_report", {})
+        self._active_litigation = deal.get("active_litigation") or {}
         self._normalize_from_layer3_shape()
 
     def _normalize_from_layer3_shape(self) -> None:
@@ -745,6 +752,16 @@ class DealInputToSchemaMapper:
         if val is None:
             return ""
         return str(val)
+
+    def _sanitize_dict(self, val: Any) -> Any:
+        """Recursively sanitize dict/list so template never sees None; scalars become strings."""
+        if val is None:
+            return {}
+        if isinstance(val, list):
+            return [self._sanitize_dict(x) for x in val]
+        if not isinstance(val, dict):
+            return self._str_or_empty(val)
+        return {k: self._sanitize_dict(v) for k, v in val.items()}
 
     def _strip_markdown(self, text: str) -> str:
         """Remove markdown formatting from text, including escaped sequences."""
@@ -1048,10 +1065,173 @@ class DealInputToSchemaMapper:
             "exists": bool(self._zoning),
         }
 
+    def _build_guarantor_financials(self) -> Dict[str, Any]:
+        """Build guarantor financials for template."""
+        return {
+            "combined_net_worth": self._guarantor_financials.get("combined_net_worth", ""),
+            "combined_cash_position": self._guarantor_financials.get("combined_cash_position", ""),
+            "combined_securities": self._guarantor_financials.get("combined_securities", ""),
+            "lender_min_net_worth": self._guarantor_financials.get("lender_min_net_worth", ""),
+            "lender_min_liquidity": self._guarantor_financials.get("lender_min_liquidity", ""),
+            "guarantees": self._guarantor_financials.get("guarantees", ""),
+        }
+
+    def _build_principal_financials(self) -> List[Dict[str, Any]]:
+        """Build principal financials list for template."""
+        if not self._principal_financials:
+            return []
+        return [
+            {
+                "name": p.get("name", ""),
+                "title": p.get("title", ""),
+                "company": p.get("company", ""),
+                "credit_score": p.get("credit_score", ""),
+                "credit_score_date": p.get("credit_score_date", ""),
+                "net_worth": p.get("net_worth", ""),
+                "liquid_assets": p.get("liquid_assets", ""),
+                "liquid_assets_composition": p.get("liquid_assets_composition", ""),
+                "sreo_property_count": p.get("sreo_property_count", ""),
+                "sreo_total_value": p.get("sreo_total_value", ""),
+                "sreo_equity": p.get("sreo_equity", ""),
+                "experience": p.get("experience", ""),
+                "notable_projects": p.get("notable_projects", ""),
+                "civic_involvement": p.get("civic_involvement", ""),
+            }
+            for p in self._principal_financials
+        ]
+
+    def _build_equity_partner(self) -> Dict[str, Any]:
+        """Build equity partner info for template."""
+        return {
+            "name": self._equity_partner.get("name", ""),
+            "description": self._equity_partner.get("description", ""),
+            "partnership_history": self._equity_partner.get("partnership_history", ""),
+        }
+
     def _build_foreclosure_analysis(self) -> Dict[str, Any]:
-        narrative = self._narratives.get("foreclosure_assumptions") or ""
-        rows = [{"Quarter": f"Q{q}", "Beginning_Balance": "TBD", "Legal_Fees": "TBD", "Taxes": "TBD", "Insurance": "TBD", "Total_Carrying_Costs": "TBD", "Interest_Accrued": "TBD", "Ending_Balance": "TBD", "Property_Value": "TBD", "LTV": "TBD"} for q in range(1, 9)]
-        return {"scenario_default_rate": {"rows": rows}, "scenario_note_rate": {"rows": rows}}
+        """Build foreclosure analysis with both scenarios."""
+        fa = self._foreclosure_analysis
+        return {
+            "default_interest_scenario": {
+                "assumptions": fa.get("default_interest_scenario", {}).get("assumptions", {}),
+                "metrics": fa.get("default_interest_scenario", {}).get("metrics", {}),
+            },
+            "note_rate_scenario": {
+                "assumptions": fa.get("note_rate_scenario", {}).get("assumptions", {}),
+                "metrics": fa.get("note_rate_scenario", {}).get("metrics", {}),
+            },
+        }
+
+    def _build_loan_terms(self) -> Dict[str, Any]:
+        """Build loan_terms section: narrative + detailed_terms table."""
+        lt = self._loan_terms
+        narrative = self._narratives.get("loan_terms_narrative") or ""
+        ir_raw = lt.get("interest_rate")
+        ir_val = ir_raw.get("description", ir_raw) if isinstance(ir_raw, dict) else ir_raw
+        detailed_terms = [
+            {"label": "Loan Amount", "value": self._fmt_currency(lt.get("loan_amount"))},
+            {"label": "Interest Rate", "value": self._str_or_empty(ir_val)},
+            {"label": "Term", "value": self._str_or_empty(lt.get("term"))},
+            {"label": "Amortization", "value": self._str_or_empty(lt.get("amortization"))},
+            {"label": "Prepayment", "value": self._str_or_empty(lt.get("prepayment"))},
+            {"label": "Recourse", "value": self._str_or_empty(lt.get("recourse"))},
+            {"label": "Origination Fee", "value": self._str_or_empty(lt.get("origination_fee"))},
+            {"label": "Exit Fee", "value": self._str_or_empty(lt.get("exit_fee"))},
+        ]
+        return {"narrative": narrative, "detailed_terms": detailed_terms}
+
+    def _build_litigation(self) -> Dict[str, Any]:
+        """Build litigation section from active_litigation."""
+        lit = self._active_litigation
+        has_litigation = bool(lit.get("exists"))
+        narrative = self._narratives.get("litigation_narrative") or ""
+        if not narrative and not has_litigation:
+            narrative = "No active litigation was disclosed."
+        cases = []
+        for c in (lit.get("cases") or []):
+            cases.append({
+                "background": self._str_or_empty(c.get("background") or c.get("description")),
+                "sponsor_explanation": self._str_or_empty(c.get("sponsor_explanation") or c.get("borrower_explanation")),
+                "fairbridge_analysis": self._str_or_empty(c.get("fairbridge_analysis") or c.get("lender_analysis")),
+                "holdback": self._str_or_empty(c.get("holdback") or c.get("reserve")),
+            })
+        return {"has_litigation": has_litigation, "narrative": narrative, "cases": cases}
+
+    def _build_financial_analysis(self) -> Dict[str, Any]:
+        """Build financial_analysis section: narrative + metrics table."""
+        fi = self._financial_information
+        narrative = self._narratives.get("property_value_narrative") or ""
+        dy = fi.get("debt_yield") or {}
+        metrics = [
+            {"label": "NOI", "value": self._fmt_currency(fi.get("noi"))},
+            {"label": "Effective Gross Income", "value": self._fmt_currency(fi.get("effective_gross_income"))},
+            {"label": "Operating Expenses", "value": self._fmt_currency(fi.get("total_operating_expenses"))},
+            {"label": "Expense Ratio", "value": self._fmt_pct(fi.get("expense_ratio"))},
+            {"label": "Debt Yield (At Closing)", "value": self._fmt_pct(dy.get("at_closing_pct"))},
+            {"label": "Debt Yield (Fully Drawn)", "value": self._fmt_pct(dy.get("fully_drawn_pct"))},
+        ]
+        return {"narrative": narrative, "metrics": [m for m in metrics if m["value"] and m["value"] != "N/A"]}
+
+    def _build_exit_strategy(self) -> Dict[str, Any]:
+        """Build exit_strategy section with narrative."""
+        narrative = self._narratives.get("exit_strategy") or ""
+        if not narrative:
+            narrative = self.deal.get("exit_strategy_text") or "Exit strategy to be determined based on market conditions."
+        return {"narrative": narrative}
+
+    def _build_deal_highlights(self) -> Dict[str, Any]:
+        """Build deal_highlights section: highlights list with title/description."""
+        items = self._highlights.get("items") or []
+        highlights = []
+        for h in items:
+            if isinstance(h, dict):
+                highlights.append({
+                    "title": self._str_or_empty(h.get("title")),
+                    "description": self._str_or_empty(h.get("description")),
+                })
+        return {"highlights": highlights}
+
+    def _build_due_diligence(self) -> Dict[str, Any]:
+        """Build due_diligence section: total_received, total_items, checklist."""
+        dd = self._due_diligence
+        checklist = [
+            {"item": "Appraisal", "status": "Received" if dd.get("appraisal_firm") else "Pending", "count": 1},
+            {"item": "Phase I ESA", "status": "Received" if dd.get("environmental_firm") else "Pending", "count": 1},
+            {"item": "Title Commitment", "status": "Pending", "count": 1},
+            {"item": "Survey", "status": "Pending", "count": 1},
+            {"item": "PCA Report", "status": "Received" if dd.get("pca_firm") else "Pending", "count": 1},
+            {"item": "Zoning Report", "status": "Pending", "count": 1},
+            {"item": "Insurance Certificates", "status": "Pending", "count": 1},
+            {"item": "Legal Documents", "status": "Pending", "count": 1},
+        ]
+        total_received = sum(1 for c in checklist if c["status"] == "Received")
+        return {
+            "total_received": dd.get("total_received") or total_received,
+            "total_items": dd.get("total_items") or len(checklist),
+            "checklist": checklist,
+        }
+
+    def _build_financial_information(self) -> Dict[str, Any]:
+        """Build detailed financial information."""
+        fi = self._financial_information
+        return {
+            "operating_statements": fi.get("operating_statements", []),
+            "updated_income_statement": fi.get("updated_income_statement", {}),
+            "dcf_valuation": fi.get("dcf_valuation", {}),
+            "total_property_value": fi.get("total_property_value", {}),
+            "ltv_metrics": fi.get("ltv_metrics", {}),
+            "debt_yield": fi.get("debt_yield", {}),
+        }
+
+    def _build_credit_report(self) -> Dict[str, Any]:
+        """Build credit report summary."""
+        return {
+            "subject_name": self._credit_report.get("subject_name", ""),
+            "date_of_birth": self._credit_report.get("date_of_birth", ""),
+            "current_address": self._credit_report.get("current_address", ""),
+            "report_date": self._credit_report.get("report_date", ""),
+            "report_provider": self._credit_report.get("report_provider", ""),
+        }
 
     def _build_capital_stack_flat(self) -> tuple:
         """Flatten capital_stack into (title, sources_list, uses_list) for template iteration."""
@@ -1115,6 +1295,264 @@ class DealInputToSchemaMapper:
         ]
         return [{"label": lbl, "value": self._str_or_empty(cd.get(key)) or ""} for key, lbl in labels]
 
+    # ============================================================================
+    # PFS DOCUMENTS (Personal Financial Statements)
+    # ============================================================================
+    def _build_pfs_documents(self) -> List[Dict]:
+        """Build PFS documents array from Layer 3 output."""
+        pfs_docs = self.deal.get("pfs_documents", [])
+        if not isinstance(pfs_docs, list):
+            return []
+        return [self._sanitize_dict(pfs) for pfs in pfs_docs]
+
+    # ============================================================================
+    # SREO DOCUMENTS (Schedule of Real Estate Owned)
+    # ============================================================================
+    def _build_sreo_documents(self) -> List[Dict]:
+        """Build SREO documents array from Layer 3 output."""
+        sreo_docs = self.deal.get("sreo_documents", [])
+        if not isinstance(sreo_docs, list):
+            return []
+        return [self._sanitize_dict(sreo) for sreo in sreo_docs]
+
+    # ============================================================================
+    # RESUME/BIO DOCUMENTS
+    # ============================================================================
+    def _build_resume_bio_documents(self) -> List[Dict]:
+        """Build Resume/Bio documents array from Layer 3 output."""
+        resume_docs = self.deal.get("resume_bio_documents", [])
+        if not isinstance(resume_docs, list):
+            return []
+        return [self._sanitize_dict(resume) for resume in resume_docs]
+
+    # ============================================================================
+    # CREDIT REPORT DOCUMENTS
+    # ============================================================================
+    def _build_credit_report_documents(self) -> List[Dict]:
+        """Build Credit Report documents array from Layer 3 output."""
+        cr_docs = self.deal.get("credit_report_documents", [])
+        if not isinstance(cr_docs, list):
+            return []
+        return [self._sanitize_dict(cr) for cr in cr_docs]
+
+    # ============================================================================
+    # TAX RETURN DOCUMENTS
+    # ============================================================================
+    def _build_tax_return_documents(self) -> List[Dict]:
+        """Build Tax Return documents array from Layer 3 output."""
+        tax_docs = self.deal.get("tax_return_documents", [])
+        if not isinstance(tax_docs, list):
+            return []
+        return [self._sanitize_dict(tax) for tax in tax_docs]
+
+    # ============================================================================
+    # PROPERTY INSURANCE
+    # ============================================================================
+    def _build_property_insurance(self) -> Dict:
+        """Build property insurance from Layer 3 output."""
+        pi = self.deal.get("property_insurance", {})
+        if not pi:
+            return {}
+        return {
+            "document_type": self._str_or_empty(pi.get("document_type")),
+            "issue_date": self._str_or_empty(pi.get("issue_date")),
+            "producer": self._sanitize_dict(pi.get("producer", {})),
+            "insurance_company": self._sanitize_dict(pi.get("insurance_company", {})),
+            "insured": self._sanitize_dict(pi.get("insured", {})),
+            "coverages": [self._sanitize_dict(c) for c in pi.get("coverages", [])]
+        }
+
+    # ============================================================================
+    # LIABILITY INSURANCE
+    # ============================================================================
+    def _build_liability_insurance(self) -> Dict:
+        """Build liability insurance from Layer 3 output."""
+        li = self.deal.get("liability_insurance", {})
+        if not li:
+            return {}
+        return {
+            "document_type": self._str_or_empty(li.get("document_type")),
+            "date_issued": self._str_or_empty(li.get("date_issued")),
+            "certificate_number": self._str_or_empty(li.get("certificate_number")),
+            "producer": self._sanitize_dict(li.get("producer", {})),
+            "insured": self._sanitize_dict(li.get("insured", {})),
+            "insurers": [self._sanitize_dict(i) for i in li.get("insurers", [])],
+            "coverages": [self._sanitize_dict(c) for c in li.get("coverages", [])]
+        }
+
+    # ============================================================================
+    # INSURANCE NARRATIVE
+    # ============================================================================
+    def _build_insurance(self) -> Dict:
+        """Build insurance section with narrative."""
+        insurance = self.deal.get("insurance", {})
+        return {
+            "narrative": self._str_or_empty(insurance.get("narrative"))
+        }
+
+    # ============================================================================
+    # DRAW SCHEDULE
+    # ============================================================================
+    def _build_draw_schedule(self) -> Dict:
+        """Build draw schedule from Layer 3 output."""
+        ds = self.deal.get("draw_schedule", {})
+        if not ds:
+            return {}
+        return {
+            "sheet_title": self._str_or_empty(ds.get("sheet_title")),
+            "line_items": [self._sanitize_dict(item) for item in ds.get("line_items", [])]
+        }
+
+    # ============================================================================
+    # CONSTRUCTION SCHEDULE
+    # ============================================================================
+    def _build_construction_schedule(self) -> Dict:
+        """Build construction schedule from Layer 3 output."""
+        cs = self.deal.get("construction_schedule", {})
+        if not cs:
+            return {}
+        return {
+            "agreement_type": self._str_or_empty(cs.get("agreement_type")),
+            "effective_date": self._str_or_empty(cs.get("effective_date")),
+            "loan_amount": self._str_or_empty(cs.get("loan_amount")),
+            "parties": self._sanitize_dict(cs.get("parties", {}))
+        }
+
+    # ============================================================================
+    # PERMITS
+    # ============================================================================
+    def _build_permits(self) -> Dict:
+        """Build permits from Layer 3 output."""
+        p = self.deal.get("permits", {})
+        if not p:
+            return {}
+        return {
+            "document_title": self._str_or_empty(p.get("document_title")),
+            "document_date": self._str_or_empty(p.get("document_date")),
+            "prepared_by": self._sanitize_dict(p.get("prepared_by", {})),
+            "project_name": self._str_or_empty(p.get("project_name")),
+            "amendment_type": self._str_or_empty(p.get("amendment_type")),
+            "applicant": self._sanitize_dict(p.get("applicant", {}))
+        }
+
+    # ============================================================================
+    # TITLE & SURVEY
+    # ============================================================================
+    def _build_title_survey(self) -> Dict:
+        """Build title & survey from Layer 3 output."""
+        ts = self.deal.get("title_survey", {})
+        if not ts:
+            return {}
+        return {
+            "document_type": self._str_or_empty(ts.get("document_type")),
+            "recording_info": self._sanitize_dict(ts.get("recording_info", {})),
+            "parties": [self._sanitize_dict(p) for p in ts.get("parties", [])],
+            "prepared_by": self._str_or_empty(ts.get("prepared_by"))
+        }
+
+    # ============================================================================
+    # TERM SHEET / LOI
+    # ============================================================================
+    def _build_term_sheet(self) -> Dict:
+        """Build term sheet from Layer 3 output."""
+        ts = self.deal.get("term_sheet", {})
+        if not ts:
+            return {}
+        return {
+            "document_type": self._str_or_empty(ts.get("document_type")),
+            "date": self._str_or_empty(ts.get("date")),
+            "project_name": self._str_or_empty(ts.get("project_name")),
+            "site_size_acres": self._str_or_empty(ts.get("site_size_acres")),
+            "current_zoning": self._str_or_empty(ts.get("current_zoning")),
+            "proposed_development": self._sanitize_dict(ts.get("proposed_development", {})),
+            "applicant": [self._sanitize_dict(a) for a in ts.get("applicant", [])],
+            "recipient": self._sanitize_dict(ts.get("recipient", {}))
+        }
+
+    # ============================================================================
+    # FINANCIALS/PROFORMA
+    # ============================================================================
+    def _build_financials_proforma(self) -> Dict:
+        """Build financials/proforma from Layer 3 output."""
+        fp = self.deal.get("financials_proforma", {})
+        if not fp:
+            return {}
+        return {
+            "entity_name": self._str_or_empty(fp.get("entity_name")),
+            "document_title": self._str_or_empty(fp.get("document_title")),
+            "statement_period": self._str_or_empty(fp.get("statement_period")),
+            "cashflow_items": [self._sanitize_dict(item) for item in fp.get("cashflow_items", [])]
+        }
+
+    # ============================================================================
+    # SOURCES & USES SPREADSHEET
+    # ============================================================================
+    def _build_sources_uses_spreadsheet(self) -> Dict:
+        """Build sources & uses spreadsheet from Layer 3 output."""
+        su = self.deal.get("sources_uses_spreadsheet", {})
+        if not su:
+            return {}
+        return {
+            "property_address": self._str_or_empty(su.get("property_address")),
+            "sources": self._sanitize_dict(su.get("sources", {})),
+            "uses": self._sanitize_dict(su.get("uses", {}))
+        }
+
+    # ============================================================================
+    # BACKGROUND AUTHORIZATION
+    # ============================================================================
+    def _build_background_auth(self) -> Dict:
+        """Build background authorization from Layer 3 output."""
+        ba = self.deal.get("background_auth", {})
+        if not ba:
+            return {}
+        return {
+            "document_type": self._str_or_empty(ba.get("document_type")),
+            "requesting_entity": self._str_or_empty(ba.get("requesting_entity")),
+            "applicant_name": self._str_or_empty(ba.get("applicant_name")),
+            "date_of_birth": self._str_or_empty(ba.get("date_of_birth")),
+            "address_history": [self._sanitize_dict(a) for a in ba.get("address_history", [])]
+        }
+
+    # ============================================================================
+    # SIMPLE PASS-THROUGH OBJECTS
+    # ============================================================================
+    def _build_operating_agreement(self) -> Dict:
+        """Build operating agreement from Layer 3 output."""
+        return self._sanitize_dict(self.deal.get("operating_agreement", {}))
+
+    def _build_good_standing(self) -> Dict:
+        """Build good standing from Layer 3 output."""
+        return self._sanitize_dict(self.deal.get("good_standing", {}))
+
+    def _build_ein_letter(self) -> Dict:
+        """Build EIN letter from Layer 3 output."""
+        return self._sanitize_dict(self.deal.get("ein_letter", {}))
+
+    def _build_gc_contract(self) -> Dict:
+        """Build GC contract from Layer 3 output."""
+        return self._sanitize_dict(self.deal.get("gc_contract", {}))
+
+    def _build_site_plans(self) -> Dict:
+        """Build site plans from Layer 3 output."""
+        return self._sanitize_dict(self.deal.get("site_plans", {}))
+
+    def _build_bank_statements(self) -> Dict:
+        """Build bank statements from Layer 3 output."""
+        return self._sanitize_dict(self.deal.get("bank_statements", {}))
+
+    def _build_fb_underwriting(self) -> Dict:
+        """Build FB underwriting from Layer 3 output."""
+        return self._sanitize_dict(self.deal.get("fb_underwriting", {}))
+
+    def _build_zoning_document(self) -> Dict:
+        """Build zoning document from Layer 3 output."""
+        return self._sanitize_dict(self.deal.get("zoning_document", {}))
+
+    def _build_property_condition(self) -> Dict:
+        """Build property condition from Layer 3 output."""
+        return self._sanitize_dict(self.deal.get("property_condition", {}))
+
     def transform(self) -> Dict[str, Any]:
         """Transform deal input to template schema format."""
         print("=== Layer 3 Input Debug ===")
@@ -1130,15 +1568,21 @@ class DealInputToSchemaMapper:
                 "transaction_overview": self._build_transaction_overview(),
                 "executive_summary": self._build_executive_summary(),
                 "sources_and_uses": self._build_sources_and_uses(),
+                "loan_terms": self._build_loan_terms(),
                 "property": self._build_property(),
+                "litigation": self._build_litigation(),
                 "location": self._build_location(),
                 "market": self._build_market(),
                 "sponsorship": self._build_sponsorship(),
-                "risks_and_mitigants": self._build_risks_and_mitigants(),
-                "validation_flags": self._build_validation_flags(),
                 "third_party_reports": self._build_third_party_reports(),
+                "financial_analysis": self._build_financial_analysis(),
+                "exit_strategy": self._build_exit_strategy(),
                 "zoning_entitlements": self._build_zoning_entitlements(),
                 "foreclosure_analysis": self._build_foreclosure_analysis(),
+                "risks_and_mitigants": self._build_risks_and_mitigants(),
+                "deal_highlights": self._build_deal_highlights(),
+                "due_diligence": self._build_due_diligence(),
+                "validation_flags": self._build_validation_flags(),
             },
         }
         li = self.deal.get("loan_issues") or {}
@@ -1274,6 +1718,51 @@ class DealInputToSchemaMapper:
             cases_list = al.get("cases") or []
             al["cases"] = [{k: self._str_or_empty(v) for k, v in (c.items() if isinstance(c, dict) else {})} for c in cases_list]
         out["active_litigation"] = al
+
+        # NEW FIELDS - guarantor/principal financials, equity partner, foreclosure, financial info, credit report
+        out["guarantor_financials"] = self._build_guarantor_financials()
+        out["principal_financials"] = self._build_principal_financials()
+        out["equity_partner"] = self._build_equity_partner()
+        out["foreclosure_analysis"] = self._build_foreclosure_analysis()
+        out["financial_information"] = self._build_financial_information()
+        out["credit_report"] = self._build_credit_report()
+
+        # SOURCE DOCUMENTS (NEW in v3)
+        out["pfs_documents"] = self._build_pfs_documents()
+        out["sreo_documents"] = self._build_sreo_documents()
+        out["resume_bio_documents"] = self._build_resume_bio_documents()
+        out["credit_report_documents"] = self._build_credit_report_documents()
+        out["tax_return_documents"] = self._build_tax_return_documents()
+
+        # Insurance
+        out["property_insurance"] = self._build_property_insurance()
+        out["liability_insurance"] = self._build_liability_insurance()
+        out["insurance"] = self._build_insurance()
+
+        # Construction/Draw
+        out["draw_schedule"] = self._build_draw_schedule()
+        out["construction_schedule"] = self._build_construction_schedule()
+
+        # Legal/Title
+        out["permits"] = self._build_permits()
+        out["title_survey"] = self._build_title_survey()
+        out["term_sheet"] = self._build_term_sheet()
+        out["operating_agreement"] = self._build_operating_agreement()
+        out["good_standing"] = self._build_good_standing()
+        out["ein_letter"] = self._build_ein_letter()
+        out["gc_contract"] = self._build_gc_contract()
+        out["background_auth"] = self._build_background_auth()
+
+        # Financial
+        out["financials_proforma"] = self._build_financials_proforma()
+        out["sources_uses_spreadsheet"] = self._build_sources_uses_spreadsheet()
+
+        # Other
+        out["site_plans"] = self._build_site_plans()
+        out["bank_statements"] = self._build_bank_statements()
+        out["fb_underwriting"] = self._build_fb_underwriting()
+        out["zoning_document"] = self._build_zoning_document()
+        out["property_condition"] = self._build_property_condition()
 
         dh = self.deal.get("deal_highlights") or {}
         out["deal_highlights"] = dict(dh) if isinstance(dh, dict) else {}
@@ -1674,7 +2163,7 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
     inline_images = prepare_images_for_template(doc, images)
     flat_data = flatten_schema_for_template(data)
 
-    # Apply RichText formatting to narrative fields
+    # Apply RichText formatting to narrative fields (headers bold, body Times New Roman 11pt)
     narrative_paths = [
         ('transaction_overview', 'narrative'),
         ('loan_terms', 'narrative'),
@@ -1690,6 +2179,7 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
         ('closing_funding_and_reserves', 'narrative'),
         ('foreclosure_assumptions', 'narrative'),
         ('risks_and_mitigants', 'recommendation_narrative'),
+        ('insurance', 'narrative'),  # v3: insurance section narrative
     ]
 
     for section_key, field_key in narrative_paths:
