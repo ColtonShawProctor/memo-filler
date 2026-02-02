@@ -1143,12 +1143,23 @@ class DealInputToSchemaMapper:
     def _build_litigation(self) -> Dict[str, Any]:
         """Build litigation section from active_litigation."""
         lit = self._active_litigation
+        if not isinstance(lit, dict):
+            lit = {}
         has_litigation = bool(lit.get("exists"))
         narrative = self._narratives.get("litigation_narrative") or ""
         if not narrative and not has_litigation:
             narrative = "No active litigation was disclosed."
         cases = []
         for c in (lit.get("cases") or []):
+            if not isinstance(c, dict):
+                # Case may be a string (narrative/description) from deal input
+                cases.append({
+                    "background": self._str_or_empty(c if isinstance(c, str) else ""),
+                    "sponsor_explanation": "",
+                    "fairbridge_analysis": "",
+                    "holdback": "",
+                })
+                continue
             cases.append({
                 "background": self._str_or_empty(c.get("background") or c.get("description")),
                 "sponsor_explanation": self._str_or_empty(c.get("sponsor_explanation") or c.get("borrower_explanation")),
