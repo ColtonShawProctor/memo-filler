@@ -1084,7 +1084,29 @@ class DealInputToSchemaMapper:
     def _build_foreclosure_analysis(self) -> Dict[str, Any]:
         narrative = self._narratives.get("foreclosure_assumptions") or ""
         rows = [{"Quarter": f"Q{q}", "Beginning_Balance": "TBD", "Legal_Fees": "TBD", "Taxes": "TBD", "Insurance": "TBD", "Total_Carrying_Costs": "TBD", "Interest_Accrued": "TBD", "Ending_Balance": "TBD", "Property_Value": "TBD", "LTV": "TBD"} for q in range(1, 9)]
-        return {"scenario_default_rate": {"rows": rows}, "scenario_note_rate": {"rows": rows}}
+        
+        # Check if deal has foreclosure_analysis data with assumptions
+        deal_fa = self.deal.get("foreclosure_analysis") or {}
+        if isinstance(deal_fa, dict):
+            default_scenario = deal_fa.get("default_interest_scenario") or deal_fa.get("scenario_default_rate") or {}
+            note_scenario = deal_fa.get("note_rate_scenario") or deal_fa.get("scenario_note_rate") or {}
+            
+            # Preserve assumptions and metrics if present, otherwise use defaults
+            scenario_default = {
+                "rows": default_scenario.get("rows", rows),
+                "assumptions": default_scenario.get("assumptions", {}),
+                "metrics": default_scenario.get("metrics", {})
+            }
+            scenario_note = {
+                "rows": note_scenario.get("rows", rows),
+                "assumptions": note_scenario.get("assumptions", {}),
+                "metrics": note_scenario.get("metrics", {})
+            }
+        else:
+            scenario_default = {"rows": rows, "assumptions": {}, "metrics": {}}
+            scenario_note = {"rows": rows, "assumptions": {}, "metrics": {}}
+        
+        return {"scenario_default_rate": scenario_default, "scenario_note_rate": scenario_note}
 
     def _build_litigation(self) -> Dict[str, Any]:
         """Build litigation section for template. Template expects sections.litigation with has_litigation, narrative, cases."""
@@ -1472,17 +1494,42 @@ class DealInputToSchemaMapper:
                 })
         out["principal_financials"] = principal_financials
         
-        # Add default_interest_scenario (from foreclosure_analysis if present)
-        if "foreclosure_analysis" in sections:
-            fa = sections["foreclosure_analysis"]
-            if "scenario_default_rate" in fa:
-                out["default_interest_scenario"] = fa["scenario_default_rate"]
-            elif "default_interest_scenario" in fa:
-                out["default_interest_scenario"] = fa["default_interest_scenario"]
-            else:
-                out["default_interest_scenario"] = {"rows": []}
+        # Add default_interest_scenario and note_interest_scenario (from foreclosure_analysis if present)
+        # Template expects .assumptions, so ensure it's always present
+        fa = sections.get("foreclosure_analysis") or {}
+        deal_fa = self.deal.get("foreclosure_analysis") or {}
+        
+        # Helper to ensure scenario has required keys
+        def ensure_scenario_structure(scenario):
+            if not isinstance(scenario, dict):
+                return {"rows": [], "assumptions": {}, "metrics": {}}
+            if "assumptions" not in scenario:
+                scenario["assumptions"] = {}
+            if "rows" not in scenario:
+                scenario["rows"] = []
+            if "metrics" not in scenario:
+                scenario["metrics"] = {}
+            return scenario
+        
+        # Get default_interest_scenario
+        if "scenario_default_rate" in fa:
+            out["default_interest_scenario"] = ensure_scenario_structure(fa["scenario_default_rate"])
+        elif "default_interest_scenario" in fa:
+            out["default_interest_scenario"] = ensure_scenario_structure(fa["default_interest_scenario"])
+        elif isinstance(deal_fa, dict) and "default_interest_scenario" in deal_fa:
+            out["default_interest_scenario"] = ensure_scenario_structure(deal_fa["default_interest_scenario"])
         else:
-            out["default_interest_scenario"] = {"rows": []}
+            out["default_interest_scenario"] = {"rows": [], "assumptions": {}, "metrics": {}}
+        
+        # Get note_interest_scenario (template may also use this)
+        if "scenario_note_rate" in fa:
+            out["note_interest_scenario"] = ensure_scenario_structure(fa["scenario_note_rate"])
+        elif "note_rate_scenario" in fa:
+            out["note_interest_scenario"] = ensure_scenario_structure(fa["note_rate_scenario"])
+        elif isinstance(deal_fa, dict) and "note_rate_scenario" in deal_fa:
+            out["note_interest_scenario"] = ensure_scenario_structure(deal_fa["note_rate_scenario"])
+        else:
+            out["note_interest_scenario"] = {"rows": [], "assumptions": {}, "metrics": {}}
 
         if not isinstance(cd, dict):
             cd = {}
