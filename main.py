@@ -719,6 +719,18 @@ class DealInputToSchemaMapper:
             if not (self._narratives.get("property_overview") or "").strip() or (self._narratives.get("property_overview") or "").strip() == "None":
                 self._narratives["property_overview"] = placeholders.get("property_description") or placeholders.get("property_overview", "") or ""
 
+    def _escape_jinja(self, value: Any) -> Any:
+        """Escape Jinja-like syntax in text values to prevent template errors from LLM-generated content."""
+        if isinstance(value, str):
+            if value == "{{TOC}}":
+                return value  # Preserve Word TOC placeholder
+            return value.replace("{{", "{ {").replace("}}", "} }").replace("{%", "{ %").replace("%}", "% }")
+        elif isinstance(value, dict):
+            return {k: self._escape_jinja(v) for k, v in value.items()}
+        elif isinstance(value, list):
+            return [self._escape_jinja(item) for item in value]
+        return value
+
     def _parse_currency_to_num(self, val: Any) -> float:
         """Parse currency string or number to float for summing. Returns 0 if not parseable."""
         if val is None:
@@ -1843,7 +1855,7 @@ class DealInputToSchemaMapper:
         if out.get('sponsor_table'):
             print(f"First sponsor row: {out['sponsor_table'][0]}")
 
-        return out
+        return self._escape_jinja(out)
 
 
 # =============================================================================
