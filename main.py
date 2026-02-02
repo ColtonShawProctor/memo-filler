@@ -67,13 +67,16 @@ IMAGE_WIDTHS = {
 
 
 # =============================================================================
-# Jinja Syntax Escaping (prevents LLM-generated text from being parsed as template)
+# Helper Functions for Data Processing
 # =============================================================================
 def escape_jinja_syntax(obj, path="root"):
-    """Recursively escape Jinja-like syntax in string values to prevent template errors."""
+    """
+    Recursively escape Jinja-like syntax in string values to prevent template errors.
+    LLM-generated narratives may contain {{ }} which Jinja interprets as variables.
+    """
     if isinstance(obj, str):
         if '{{' in obj or '{%' in obj:
-            print(f"ESCAPE_JINJA: Found Jinja syntax at {path}: {obj[:200]}...")
+            print(f"ESCAPE_JINJA: Found Jinja syntax at {path}: {obj[:100]}...")
         return obj.replace('{{', '{ {').replace('}}', '} }').replace('{%', '{ %').replace('%}', '% }')
     elif isinstance(obj, dict):
         return {k: escape_jinja_syntax(v, f"{path}.{k}") for k, v in obj.items()}
@@ -83,13 +86,21 @@ def escape_jinja_syntax(obj, path="root"):
 
 
 def parse_currency_to_number(val) -> float:
-    """Convert currency string like '$35,610,000' to a number."""
+    """
+    Convert currency string like '$35,610,000' to a number.
+    Returns 0.0 for None, empty, or unparseable values.
+    """
+    if val is None:
+        return 0.0
     if isinstance(val, (int, float)):
         return float(val)
     if isinstance(val, str):
-        cleaned = val.replace('$', '').replace(',', '').strip()
+        # Remove currency symbols, commas, spaces
+        cleaned = val.replace('$', '').replace(',', '').replace(' ', '').strip()
+        if not cleaned:
+            return 0.0
         try:
-            return float(cleaned) if cleaned else 0.0
+            return float(cleaned)
         except ValueError:
             return 0.0
     return 0.0
@@ -475,7 +486,7 @@ class Layer2ToSchemaMapper:
                     financial_summary.append({"label": "Combined Liquidity", "value": self._format_currency((combined_cash or 0) + (combined_securities or 0))})
                     break
 
-        # Calculate combined totals (parse currency strings to numbers)
+        # Calculate combined totals (use parse_currency_to_number to handle string values)
         combined_net_worth = sum(parse_currency_to_number(s.get('net_worth')) for s in sponsors)
         combined_liquidity = sum(parse_currency_to_number(s.get('liquidity')) for s in sponsors)
 
@@ -972,6 +983,7 @@ class DealInputToSchemaMapper:
                 nw = fp.get("net_worth")
                 liq = fp.get("liquid_assets")
                 sponsors.append({"name": name, "total_assets": None, "net_worth": nw, "liquidity": liq, "cash": liq, "securities": None})
+        # Use parse_currency_to_number to handle currency strings like "$35,610,000"
         combined_nw = sum(parse_currency_to_number(s.get("net_worth")) for s in sponsors)
         combined_liq = sum(parse_currency_to_number(s.get("liquidity")) for s in sponsors)
         financial_summary = [
@@ -1072,6 +1084,44 @@ class DealInputToSchemaMapper:
         rows = [{"Quarter": f"Q{q}", "Beginning_Balance": "TBD", "Legal_Fees": "TBD", "Taxes": "TBD", "Insurance": "TBD", "Total_Carrying_Costs": "TBD", "Interest_Accrued": "TBD", "Ending_Balance": "TBD", "Property_Value": "TBD", "LTV": "TBD"} for q in range(1, 9)]
         return {"scenario_default_rate": {"rows": rows}, "scenario_note_rate": {"rows": rows}}
 
+    def _build_litigation(self) -> Dict[str, Any]:
+        """Build litigation section for template. Template expects sections.litigation with has_litigation, narrative, cases."""
+        al = self.deal.get("active_litigation") or {}
+        if not isinstance(al, dict):
+            al = {}
+
+        # Get and normalize cases
+        cases_raw = al.get("cases") or []
+        if isinstance(cases_raw, dict):
+            # Single case object - wrap in array
+            cases_raw = [cases_raw]
+
+        # Build normalized cases list with correct field names for template
+        cases = []
+        for c in cases_raw:
+            if not isinstance(c, dict):
+                continue
+            cases.append({
+                "case_name": self._str_or_empty(c.get("case_name") or c.get("case") or ""),
+                "background": self._str_or_empty(c.get("background") or c.get("complaint_background") or ""),
+                "sponsor_explanation": self._str_or_empty(c.get("sponsor_explanation") or ""),
+                "fairbridge_analysis": self._str_or_empty(c.get("fairbridge_analysis") or c.get("fairbridge_counsel_analysis") or ""),
+                "holdback": self._str_or_empty(c.get("holdback") or c.get("fairbridge_holdback") or ""),
+            })
+
+        has_litigation = al.get("exists", False) or len(cases) > 0
+        narrative = self._narratives.get("litigation_narrative") or ""
+        if not narrative and has_litigation:
+            narrative = f"{len(cases)} active litigation case(s). See details below."
+        elif not narrative:
+            narrative = "No active litigation identified."
+
+        return {
+            "has_litigation": has_litigation,
+            "narrative": narrative,
+            "cases": cases,
+        }
+
     def _build_capital_stack_flat(self) -> tuple:
         """Flatten capital_stack into (title, sources_list, uses_list) for template iteration."""
         cs = self.deal.get("capital_stack") or {}
@@ -1158,6 +1208,7 @@ class DealInputToSchemaMapper:
                 "third_party_reports": self._build_third_party_reports(),
                 "zoning_entitlements": self._build_zoning_entitlements(),
                 "foreclosure_analysis": self._build_foreclosure_analysis(),
+                "litigation": self._build_litigation(),
             },
         }
         li = self.deal.get("loan_issues") or {}
@@ -1729,7 +1780,7 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
     inline_images = prepare_images_for_template(doc, images)
     # Flatten sections into root so template placeholders like {{ deal_facts }} work
     flat_data = flatten_schema_for_template(data)
-    # Escape any Jinja-like syntax in LLM-generated narratives to prevent template errors
+    # Escape any Jinja-like syntax in LLM-generated text to prevent template errors
     flat_data = escape_jinja_syntax(flat_data)
     context = {**flat_data, **inline_images}
     if "images" not in context:
@@ -1746,16 +1797,6 @@ def fill_template(template_bytes: bytes, data: Dict[str, Any], images: Dict[str,
         for k in ("income_producing", "development"):
             if k in li and li[k] is not None and not isinstance(li[k], list):
                 li[k] = []
-
-    # Debug: Check for any remaining Jinja syntax in context
-    import json
-    context_str = json.dumps(context, default=str)
-    if '{{' in context_str or '{%' in context_str:
-        # Find where
-        for match in ['{{', '{%']:
-            idx = context_str.find(match)
-            if idx >= 0:
-                print(f"WARNING: Found {match} in context at position {idx}: ...{context_str[max(0,idx-50):idx+100]}...")
 
     try:
         doc.render(context)
