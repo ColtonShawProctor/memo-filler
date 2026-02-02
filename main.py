@@ -1899,13 +1899,41 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
     fa = sections.get("foreclosure_analysis") or {}
     def _scenario_with_items(s):
         if not s or not isinstance(s, dict):
-            s = {"rows": []}
+            s = {"rows": [], "assumptions": {}, "metrics": {}}
         rows = s.get("rows") if isinstance(s.get("rows"), list) else []
+        # Ensure assumptions and metrics exist
+        if "assumptions" not in s:
+            s["assumptions"] = {}
+        if "metrics" not in s:
+            s["metrics"] = {}
         return {**s, "rows": rows, "items": rows}
-    if "default_interest_scenario" not in flat:
+    # Ensure default_interest_scenario exists and has assumptions
+    if "default_interest_scenario" not in flat or flat.get("default_interest_scenario") is None:
         flat["default_interest_scenario"] = _scenario_with_items(fa.get("scenario_default_rate"))
-    if "note_interest_scenario" not in flat:
+    else:
+        # Ensure existing default_interest_scenario has assumptions
+        if isinstance(flat.get("default_interest_scenario"), dict):
+            if "assumptions" not in flat["default_interest_scenario"]:
+                flat["default_interest_scenario"]["assumptions"] = {}
+            if "metrics" not in flat["default_interest_scenario"]:
+                flat["default_interest_scenario"]["metrics"] = {}
+        else:
+            # If it's not a dict, replace it with proper structure
+            flat["default_interest_scenario"] = _scenario_with_items(fa.get("scenario_default_rate"))
+    
+    # Ensure note_interest_scenario exists and has assumptions
+    if "note_interest_scenario" not in flat or flat.get("note_interest_scenario") is None:
         flat["note_interest_scenario"] = _scenario_with_items(fa.get("scenario_note_rate"))
+    else:
+        # Ensure existing note_interest_scenario has assumptions
+        if isinstance(flat.get("note_interest_scenario"), dict):
+            if "assumptions" not in flat["note_interest_scenario"]:
+                flat["note_interest_scenario"]["assumptions"] = {}
+            if "metrics" not in flat["note_interest_scenario"]:
+                flat["note_interest_scenario"]["metrics"] = {}
+        else:
+            # If it's not a dict, replace it with proper structure
+            flat["note_interest_scenario"] = _scenario_with_items(fa.get("scenario_note_rate"))
     # Keep sections for templates that use sections.* paths (e.g. sections.transaction_overview.deal_facts)
     flat["sections"] = sections
     # If sections.sponsorship.overview_narrative is missing, derive from sponsor name (e.g. "Steve Hudson & Charlie Ladd Jr.")
