@@ -826,8 +826,8 @@ class DealInputToSchemaMapper:
         - cover.underwriting_team
         - cover.date
         """
-        cover_data = self.deal.get("cover", {})
-        property_data = self.deal.get("property", {})
+        cover_data = self._cover or self.deal.get("cover", {})
+        property_data = self._property or self.deal.get("property", {})
 
         # Get property address from various sources
         property_address = (
@@ -846,15 +846,13 @@ class DealInputToSchemaMapper:
             property_address = ", ".join(p for p in parts if p)
 
         # Format date - default to current date if not provided
-        date_str = cover_data.get("date")
-        if not date_str:
-            date_str = datetime.now().strftime("%B %d, %Y")
+        date_str = self._str_or_empty(self._cover.get("date")) or self._str_or_empty(cover_data.get("date")) or datetime.now().strftime("%B %d, %Y")
 
         return {
             "memo_subtitle": cover_data.get("memo_subtitle") or property_address,
             "property_address": property_address,
-            "credit_committee": self._str_or_empty(cover_data.get("credit_committee")),
-            "underwriting_team": self._str_or_empty(cover_data.get("underwriting_team")),
+            "credit_committee": self._str_or_empty(self._cover.get("credit_committee")),
+            "underwriting_team": self._str_or_empty(self._cover.get("underwriting_team")),
             "date": date_str,
         }
 
@@ -1529,18 +1527,40 @@ class DealInputToSchemaMapper:
 
         # Build collaborative ventures using dedicated method
         cv_built = self._build_collaborative_ventures()
-        out["collaborative_ventures"] = cv_built
-        # Preserve backward compatibility fields
+        
+        # Preserve backward compatibility fields - properly map items with property_address
         cv = self.deal.get("collaborative_ventures")
+        cv_items = []
         if isinstance(cv, dict):
-            out["collaborative_ventures_list"] = cv.get("items") or cv.get("ventures") or list(cv.values()) or []
-            out["collaborative_ventures_disclosure"] = cv.get("disclosure_statement") or ""
+            raw_items = cv.get("items") or cv.get("ventures") or []
         elif isinstance(cv, list):
-            out["collaborative_ventures_list"] = cv
-            out["collaborative_ventures_disclosure"] = ""
+            raw_items = cv
         else:
-            out["collaborative_ventures_list"] = cv_built.get("items", [])
-            out["collaborative_ventures_disclosure"] = ""
+            raw_items = []
+
+        for item in raw_items:
+            if not isinstance(item, dict):
+                continue
+            # Format acquisition price
+            acq_price = item.get("acquisition_price")
+            if acq_price and isinstance(acq_price, (int, float)):
+                acq_price = f"${acq_price:,.0f}"
+
+            cv_items.append({
+                "property_address": self._str_or_empty(item.get("property_address")),
+                "acquisition_date": self._str_or_empty(item.get("acquisition_date") or item.get("acquisition_period")),
+                "acquisition_price": self._str_or_empty(acq_price),
+                "description": self._str_or_empty(item.get("description")),
+                "status": self._str_or_empty(item.get("status")),
+            })
+
+        # Use cv_built items if no raw items were found
+        if not cv_items:
+            cv_items = cv_built.get("items", [])
+
+        out["collaborative_ventures"] = {"items": cv_items}
+        out["collaborative_ventures_list"] = cv_items
+        out["collaborative_ventures_disclosure"] = cv.get("disclosure_statement", "") if isinstance(cv, dict) else ""
 
         # Flatten capital_stack into iterable arrays for Jinja (avoid raw dict in template)
         cap_title, cap_sources, cap_uses = self._build_capital_stack_flat()
