@@ -1667,6 +1667,9 @@ def flatten_schema_for_template(data: Dict[str, Any]) -> Dict[str, Any]:
         flat["property_overview_narrative"] = sections["property"].get("description_narrative") or ""
     if "financial_info" not in flat and "sponsorship" in sections:
         flat["financial_info"] = sections["sponsorship"].get("financial_summary", [])
+    # Template alias: guarantor_financials = financial_summary from sponsorship
+    if "guarantor_financials" not in flat and "sponsorship" in sections:
+        flat["guarantor_financials"] = sections["sponsorship"].get("financial_summary", [])
     fa = sections.get("foreclosure_analysis") or {}
     def _scenario_with_items(s):
         if not s or not isinstance(s, dict):
