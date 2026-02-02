@@ -702,6 +702,8 @@ class DealInputToSchemaMapper:
         self._due_diligence = deal.get("due_diligence") or {}
         self._environmental = deal.get("environmental") or {}
         self._zoning = deal.get("zoning") or {}
+        self._active_litigation = deal.get("active_litigation") or {}
+        self._financial_info = deal.get("financial_information") or {}
         self._normalize_from_layer3_shape()
 
     def _normalize_from_layer3_shape(self) -> None:
@@ -1086,40 +1088,89 @@ class DealInputToSchemaMapper:
 
     def _build_litigation(self) -> Dict[str, Any]:
         """Build litigation section for template. Template expects sections.litigation with has_litigation, narrative, cases."""
-        al = self.deal.get("active_litigation") or {}
-        if not isinstance(al, dict):
-            al = {}
-
-        # Get and normalize cases
-        cases_raw = al.get("cases") or []
-        if isinstance(cases_raw, dict):
-            # Single case object - wrap in array
-            cases_raw = [cases_raw]
-
-        # Build normalized cases list with correct field names for template
-        cases = []
-        for c in cases_raw:
-            if not isinstance(c, dict):
-                continue
-            cases.append({
-                "case_name": self._str_or_empty(c.get("case_name") or c.get("case") or ""),
-                "background": self._str_or_empty(c.get("background") or c.get("complaint_background") or ""),
-                "sponsor_explanation": self._str_or_empty(c.get("sponsor_explanation") or ""),
-                "fairbridge_analysis": self._str_or_empty(c.get("fairbridge_analysis") or c.get("fairbridge_counsel_analysis") or ""),
-                "holdback": self._str_or_empty(c.get("holdback") or c.get("fairbridge_holdback") or ""),
-            })
-
-        has_litigation = al.get("exists", False) or len(cases) > 0
+        lit = self._active_litigation
+        has_litigation = bool(lit.get("exists"))
         narrative = self._narratives.get("litigation_narrative") or ""
-        if not narrative and has_litigation:
-            narrative = f"{len(cases)} active litigation case(s). See details below."
-        elif not narrative:
-            narrative = "No active litigation identified."
+        if not narrative and not has_litigation:
+            narrative = "No active litigation was disclosed."
+        cases = []
+        for c in (lit.get("cases") or []):
+            cases.append({
+                "background": self._str_or_empty(c.get("background") or c.get("description")),
+                "sponsor_explanation": self._str_or_empty(c.get("sponsor_explanation") or c.get("borrower_explanation")),
+                "fairbridge_analysis": self._str_or_empty(c.get("fairbridge_analysis") or c.get("lender_analysis")),
+                "holdback": self._str_or_empty(c.get("holdback") or c.get("reserve"))
+            })
+        return {"has_litigation": has_litigation, "narrative": narrative, "cases": cases}
 
+    def _build_loan_terms(self) -> Dict[str, Any]:
+        """Build loan terms section for template."""
+        lt = self._loan_terms
+        narrative = self._narratives.get("loan_terms_narrative") or ""
+        detailed_terms = [
+            {"label": "Loan Amount", "value": self._fmt_currency(lt.get("loan_amount"))},
+            {"label": "Interest Rate", "value": self._str_or_empty(lt.get("interest_rate"))},
+            {"label": "Term", "value": self._str_or_empty(lt.get("term"))},
+            {"label": "Amortization", "value": self._str_or_empty(lt.get("amortization"))},
+            {"label": "Prepayment", "value": self._str_or_empty(lt.get("prepayment"))},
+            {"label": "Recourse", "value": self._str_or_empty(lt.get("recourse"))},
+            {"label": "Origination Fee", "value": self._str_or_empty(lt.get("origination_fee"))},
+            {"label": "Exit Fee", "value": self._str_or_empty(lt.get("exit_fee"))},
+        ]
+        return {"narrative": narrative, "detailed_terms": detailed_terms}
+
+    def _build_financial_analysis(self) -> Dict[str, Any]:
+        """Build financial analysis section for template."""
+        fi = self._financial_info
+        narrative = self._narratives.get("property_value_narrative") or ""
+        dy = fi.get("debt_yield") or {}
+        metrics = [
+            {"label": "NOI", "value": self._fmt_currency(fi.get("noi"))},
+            {"label": "Effective Gross Income", "value": self._fmt_currency(fi.get("effective_gross_income"))},
+            {"label": "Operating Expenses", "value": self._fmt_currency(fi.get("total_operating_expenses"))},
+            {"label": "Expense Ratio", "value": self._fmt_pct(fi.get("expense_ratio"))},
+            {"label": "Debt Yield (At Closing)", "value": self._fmt_pct(dy.get("at_closing_pct"))},
+            {"label": "Debt Yield (Fully Drawn)", "value": self._fmt_pct(dy.get("fully_drawn_pct"))},
+        ]
+        return {"narrative": narrative, "metrics": [m for m in metrics if m["value"] and m["value"] != "N/A"]}
+
+    def _build_exit_strategy(self) -> Dict[str, Any]:
+        """Build exit strategy section for template."""
+        narrative = self._narratives.get("exit_strategy") or ""
+        if not narrative:
+            narrative = self.deal.get("exit_strategy_text") or "Exit strategy to be determined based on market conditions."
+        return {"narrative": narrative}
+
+    def _build_deal_highlights(self) -> Dict[str, Any]:
+        """Build deal highlights section for template."""
+        items = self._highlights.get("items") or []
+        highlights = []
+        for h in items:
+            if isinstance(h, dict):
+                highlights.append({
+                    "title": self._str_or_empty(h.get("title")),
+                    "description": self._str_or_empty(h.get("description"))
+                })
+        return {"highlights": highlights}
+
+    def _build_due_diligence(self) -> Dict[str, Any]:
+        """Build due diligence section for template."""
+        dd = self._due_diligence
+        checklist = [
+            {"item": "Appraisal", "status": "Received" if dd.get("appraisal_firm") else "Pending", "count": 1},
+            {"item": "Phase I ESA", "status": "Received" if dd.get("environmental_firm") else "Pending", "count": 1},
+            {"item": "Title Commitment", "status": "Pending", "count": 1},
+            {"item": "Survey", "status": "Pending", "count": 1},
+            {"item": "PCA Report", "status": "Received" if dd.get("pca_firm") else "Pending", "count": 1},
+            {"item": "Zoning Report", "status": "Pending", "count": 1},
+            {"item": "Insurance Certificates", "status": "Pending", "count": 1},
+            {"item": "Legal Documents", "status": "Pending", "count": 1},
+        ]
+        total_received = sum(1 for c in checklist if c["status"] == "Received")
         return {
-            "has_litigation": has_litigation,
-            "narrative": narrative,
-            "cases": cases,
+            "total_received": dd.get("total_received") or total_received,
+            "total_items": dd.get("total_items") or len(checklist),
+            "checklist": checklist
         }
 
     def _build_capital_stack_flat(self) -> tuple:
@@ -1199,16 +1250,21 @@ class DealInputToSchemaMapper:
                 "transaction_overview": self._build_transaction_overview(),
                 "executive_summary": self._build_executive_summary(),
                 "sources_and_uses": self._build_sources_and_uses(),
+                "loan_terms": self._build_loan_terms(),
                 "property": self._build_property(),
+                "litigation": self._build_litigation(),
                 "location": self._build_location(),
                 "market": self._build_market(),
                 "sponsorship": self._build_sponsorship(),
-                "risks_and_mitigants": self._build_risks_and_mitigants(),
-                "validation_flags": self._build_validation_flags(),
                 "third_party_reports": self._build_third_party_reports(),
+                "financial_analysis": self._build_financial_analysis(),
+                "exit_strategy": self._build_exit_strategy(),
                 "zoning_entitlements": self._build_zoning_entitlements(),
                 "foreclosure_analysis": self._build_foreclosure_analysis(),
-                "litigation": self._build_litigation(),
+                "risks_and_mitigants": self._build_risks_and_mitigants(),
+                "deal_highlights": self._build_deal_highlights(),
+                "due_diligence": self._build_due_diligence(),
+                "validation_flags": self._build_validation_flags(),
             },
         }
         li = self.deal.get("loan_issues") or {}
